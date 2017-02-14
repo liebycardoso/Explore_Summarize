@@ -1,0 +1,311 @@
+TÍTULO por SEU_NOME_AQUI
+========================================================
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+# Carregue aqui todos os pacotes utilizados 
+# na sua análise realizada neste arquivo fonte.
+
+# Note que o parâmetro "echo" foi definido como FALSE neste código.
+# Isso previne que o código apresente resultados formatados em HTML.
+# Você deve definir echo=FALSE para todos os blocos de código no seu arquivo.
+
+library(ggplot2)
+
+library(ggthemes) 
+
+# Cria objetos gr�ficos e posiciona em uma p�gina
+library(gridExtra)
+
+# Facilita a limpeza dos dados spread() & gather()
+library(tidyr)
+
+# Manipula��o de dados
+library(dplyr)
+
+# Templates adicionais do ggplot2
+library(GGally)
+
+library(maptools)
+```
+
+```{r echo=FALSE, Load_the_Data}
+# Carregamento dos dados
+
+fies <- read.csv('C:/Nanodegree/Explore_Summarize/sample_fies.csv', sep = ';')[ ,c("SG_UF", "NO_MUNICIPIO", "VL_MENSALIDADE", "TP_FIANCA", "NU_ANO_EXERCICIO_INSC", "NU_PERCENTUAL_PROUNI", "NU_PERCENT_SOLICITADO_FINANC", "VL_REPASSE", "DT_NASCIMENTO", "ST_DEFICIENCIA", "ST_ENSINO_MEDIO_ESCOLA_PUBLICA", "DS_SEXO", "DS_ESTADO_CIVIL", "DS_RACA_COR", "VL_PERC_FINANCIAMENTO", "QT_SEMESTRE_FINANCIADO", "DS_CURSO")]
+names(fies)
+
+```
+
+```{r}
+setwd("C:/Nanodegree/Explore_Summarize")
+state.map <- readShapeSpatial("estados_2010.shp")
+counties.map <- readShapeSpatial("municipios_2010.shp")
+## this is the variable we will be plotting
+counties.map@data$noise <- rnorm(nrow(counties.map@data))
+```
+
+
+```{r}
+str(fies)
+```
+```{r}
+fies$VL_REPASSE <- gsub(",",".",fies$VL_REPASSE)
+fies$VL_MENSALIDADE   <- gsub(",",".",fies$VL_MENSALIDADE)
+
+```
+
+```{r}
+fies$VL_REPASSE <-  as.numeric(as.character(fies$VL_REPASSE))
+fies$VL_MENSALIDADE <-  as.numeric(as.character(fies$VL_MENSALIDADE))
+fies$DT_NASCIMENTO <-    as.Date(fies$DT_NASCIMENTO, format = "%d/%m/%Y")
+```
+
+```{r}
+# Verifica o total de valores nulos no campo de percentual de financiamento concedido que � o mais foco principal
+sum(is.na(fies$VL_PERC_FINANCIAMENTO))
+```
+```{r}
+sum(is.na(fies$SG_UF))
+sum(is.na(fies$ST_ENSINO_MEDIO_ESCOLA_PUBLICA))
+sum(is.na(fies$DS_SEXO))
+sum(is.na(fies$DS_ESTADO_CIVIL))
+sum(is.na(fies$DS_RACA_COR))
+sum(is.na(fies$DS_CURSO))
+```
+```{r}
+sum(is.na(fies$TP_FIANCA))
+```
+
+
+```{r echo=FALSE, Univariate_Plots}
+hr <- read.csv('C:/Nanodegree/Explore_Summarize/P04_Explore_Summarize/HR_data.csv', sep = ',')
+```
+```{r}
+summary(hr)
+```
+```{r}
+names(hr)
+```
+```{r}
+options(install.packages.check.source = "tm")
+```
+
+
+# Sção de Gráficos Univariados
+
+
+# Análise Univariada
+
+### Qual é a estrutura do conjunto de dados?
+```{r}
+
+```
+#O principal objetivo � investigar a influ�ncia das demais vari�veis na decis�o de sa�da de uma pessoa de uma empresa e do seu n�vel de satisfa��o.
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+
+```
+# Verifica se existem valores nulos no conjunto de dados hr
+
+```{r}
+table(fies$DS_RACA_COR)
+```
+```{r}
+
+```
+```{r}
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(VL_MENSALIDADE ), data = fies) + 
+  geom_histogram(fill="orange",
+                 aes(y =..density..)) +
+  scale_x_log10() +
+   geom_density(col=2) + 
+  labs(title="Distribui��o mensalidade", 
+       y="Total", 
+       x= "Valor mensalidade - log10")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+grafico1 <- ggplot(aes(QT_SEMESTRE_FINANCIADO),  data = fies) + 
+  geom_bar(fill="orange") +
+  scale_x_continuous(limits = c(4, 12), breaks = seq(4,12,1)) +
+  labs(title="Distribui��o semestre financiado", 
+       y="Total", 
+       x= "Semestre Financiado")
+
+grafico2 <- ggplot(aes(VL_MENSALIDADE ), data = fies) + 
+  geom_histogram(fill="orange",
+                 aes(y =..density..)) +
+  scale_x_log10() +
+  geom_density(col=2) + 
+  labs(title="Distribui��o mensalidade", 
+       y="Total", 
+       x= "Valor mensalidade - log10")
+
+grafico3 <- ggplot(aes(fies$VL_PERC_FINANCIAMENTO),  data = fies) + 
+  geom_histogram(fill = I("orange"))+
+  scale_x_continuous(limits = c(40, 110), breaks = seq(40,110,10)) +
+  labs(title="Distribui��o percentual Financiado", 
+         y="Total", 
+         x= "% Financiado")
+
+grid.arrange(grafico1, grafico2, grafico3, nrow=3)
+```
+
+```{r}
+pie(x= fies$DS_RACA_COR)
+
+```
+```{r}
+
+```
+
+
+
+```{r}
+prop.table(table(fies$DS_RACA_COR))
+```
+
+```{r}
+table(hr$left)
+by(hr$satisfaction_level, hr$left, summary)
+
+```
+
+ [1] "SG_UF"                          "NO_MUNICIPIO"                   "VL_MENSALIDADE"                 "TP_FIANCA"                     
+ [5] "NU_ANO_EXERCICIO_INSC"          "NU_PERCENTUAL_PROUNI"           "NU_PERCENT_SOLICITADO_FINANC"   "VL_REPASSE"                    
+ [9] "DT_NASCIMENTO"                  "ST_DEFICIENCIA"                 "ST_ENSINO_MEDIO_ESCOLA_PUBLICA" "DS_SEXO"                       
+[13] "DS_ESTADO_CIVIL"                "DS_RACA_COR"                    "VL_PERC_FINANCIAMENTO"          "QT_SEMESTRE_FINANCIADO"        
+[17] "DS_CURSO"
+```{r}
+ggplot(aes(x = VL_PERC_FINANCIAMENTO, fill = DS_SEXO),
+	data = fies) + 
+facet_wrap( ~ DS_RACA_COR) +
+geom_histogram() +
+scale_fill_brewer(type = 'qual')
+```
+```{r}
+table(fies$DS_SEXO)
+```
+
+
+### Quais são os principais atributos de interesse deste conjunto de dados?
+
+### Quais outros atributos você acha que podem lhe auxiliar na investigação destes atributos de interesse?
+
+### Você criou novas variáveis a partir dos atributos existentes no conjunto de dados?
+
+### Dos atributos investigados, distribuições incomuns foram encontradas? Você aplicou operações nos dados para limpá-los, ajustá-los ou mudar a forma dos dados? Se sim, por quê?
+
+
+
+# Seção de Gráficos Bivariados
+```{r echo=FALSE, Bivariate_Plots}
+
+```
+
+# Análise Bivariada
+
+### Discuta sobre alguns dos relacionamentos observados nesta parte da investigação. Como os atributos de interesse variaram no conjunto de dados?
+
+### Você observou algum relacionamento interessante entre os outros atributos (os que não são de interesse)?
+
+### Qual foi o relacionamento mais forte encontrado?
+
+
+
+
+# Seção de Gráficos Multivariados
+
+```{r echo=FALSE, Multivariate_Plots}
+
+```
+
+# Análise Multivariada
+
+### Discuta sobre os relacionamentos observados nesta parte da investigação. Quais atributos que fortaleceram os demais na observação das variáveis de interesse?
+
+### Interações surpreendentes e/ou interessantes foram encontradas entre os atributos?
+
+### OPCIONAL: Modelos foram criados usando este conjunto de dados? Discuta sobre os pontos fortes e as limitações do seu modelo.
+
+------
+
+# Gráficos Finais e Sumário
+
+### Primeiro Gráfico
+```{r echo=FALSE, Plot_One}
+
+```
+
+### Descrição do Primeiro Gráfico
+
+
+### Segundo Gráfico
+```{r echo=FALSE, Plot_Two}
+
+```
+
+### Descrição do Segundo Gráfico
+
+
+### Terceiro Gráfico
+```{r echo=FALSE, Plot_Three}
+
+```
+
+### Descrição do Terceiro Gráfico
+
+------
+
+# Reflexão
+http://stackoverflow.com/questions/1260965/developing-geographic-thematic-maps-with-r
+

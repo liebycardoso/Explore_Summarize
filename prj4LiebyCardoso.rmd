@@ -1,4 +1,4 @@
-T√çTULO por SEU_NOME_AQUI
+inT√çTULO por SEU_NOME_AQUI
 ========================================================
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
@@ -25,13 +25,13 @@ library(dplyr)
 # Templates adicionais do ggplot2
 library(GGally)
 
-library(maptools)
+#library(maptools)
 ```
 
 ```{r echo=FALSE, Load_the_Data}
 # Carregamento dos dados
 
-fies <- read.csv('C:/Nanodegree/Explore_Summarize/sample_fies.csv', sep = ';')[ ,c("SG_UF", "NO_MUNICIPIO", "VL_MENSALIDADE", "TP_FIANCA", "NU_ANO_EXERCICIO_INSC", "NU_PERCENTUAL_PROUNI", "NU_PERCENT_SOLICITADO_FINANC", "VL_REPASSE", "DT_NASCIMENTO", "ST_DEFICIENCIA", "ST_ENSINO_MEDIO_ESCOLA_PUBLICA", "DS_SEXO", "DS_ESTADO_CIVIL", "DS_RACA_COR", "VL_PERC_FINANCIAMENTO", "QT_SEMESTRE_FINANCIADO", "DS_CURSO")]
+fies <- read.csv('P:/Nanodegree/Explore_Summarize/sample_fies.csv', sep = ';')[ ,c("SG_UF", "NO_MUNICIPIO", "VL_MENSALIDADE", "TP_FIANCA", "NU_ANO_EXERCICIO_INSC", "NU_PERCENTUAL_PROUNI", "NU_PERCENT_SOLICITADO_FINANC", "VL_REPASSE", "DT_NASCIMENTO", "ST_DEFICIENCIA", "ST_ENSINO_MEDIO_ESCOLA_PUBLICA", "DS_SEXO", "DS_ESTADO_CIVIL", "DS_RACA_COR", "VL_PERC_FINANCIAMENTO", "QT_SEMESTRE_FINANCIADO", "DS_CURSO")]
 names(fies)
 
 ```
@@ -78,16 +78,12 @@ sum(is.na(fies$TP_FIANCA))
 
 
 ```{r echo=FALSE, Univariate_Plots}
-hr <- read.csv('C:/Nanodegree/Explore_Summarize/P04_Explore_Summarize/HR_data.csv', sep = ',')
 ```
 ```{r}
-summary(hr)
 ```
 ```{r}
-names(hr)
 ```
 ```{r}
-options(install.packages.check.source = "tm")
 ```
 
 
@@ -162,14 +158,6 @@ table(fies$DS_RACA_COR)
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-ggplot(aes(VL_MENSALIDADE ), data = fies) + 
-  geom_histogram(fill="orange",
-                 aes(y =..density..)) +
-  scale_x_log10() +
-   geom_density(col=2) + 
-  labs(title="DistribuiÁ„o mensalidade", 
-       y="Total", 
-       x= "Valor mensalidade - log10")
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
@@ -200,18 +188,46 @@ grafico3 <- ggplot(aes(fies$VL_PERC_FINANCIAMENTO),  data = fies) +
 grid.arrange(grafico1, grafico2, grafico3, nrow=3)
 ```
 
+### Conhecendo os benefÌciarios do FIES
 ```{r}
-pie(x= fies$DS_RACA_COR)
+grafico1 <- ggplot(aes(DS_SEXO),  data = fies) + 
+  geom_bar(fill="blue") +
+  #scale_x_continuous(limits = c(4, 12), breaks = seq(4,12,1)) +
+  labs(title="Homens/Mulheres", 
+       y="Total", 
+       x= "Semestre Financiado")
+
+grafico2 <- ggplot(aes(DS_ESTADO_CIVIL), data = fies, colours=DS_SEXO) + 
+  geom_bar(fill="blue") +
+  #geom_density(col=2) + 
+  labs(title="Estado civil", 
+       y="Total", 
+       x= "Valor mensalidade - log10")
+
+grafico3 <- ggplot(aes(fies$VL_PERC_FINANCIAMENTO),  data = fies) + 
+  geom_bar(fill = I("blue"))+
+  #scale_x_continuous(limits = c(40, 110), breaks = seq(40,110,10)) +
+  labs(title="DistribuiÁ„o percentual Financiado", 
+         y="Total", 
+         x= "% Financiado")
+
+grid.arrange(grafico1, grafico2,  ncol=2)
 
 ```
 ```{r}
+fies[fies==""] <- NA
+fies <- fies[complete.cases(fies),]
+```
 
+```{r}
+table(fies$DS_RACA_COR)
 ```
 
 
-
 ```{r}
-prop.table(table(fies$DS_RACA_COR))
+ggplot(aes(x=DS_ESTADO_CIVIL , fill=DS_SEXO ),
+       data = fies) + geom_bar()
+```
 ```
 
 ```{r}
@@ -225,13 +241,19 @@ by(hr$satisfaction_level, hr$left, summary)
  [9] "DT_NASCIMENTO"                  "ST_DEFICIENCIA"                 "ST_ENSINO_MEDIO_ESCOLA_PUBLICA" "DS_SEXO"                       
 [13] "DS_ESTADO_CIVIL"                "DS_RACA_COR"                    "VL_PERC_FINANCIAMENTO"          "QT_SEMESTRE_FINANCIADO"        
 [17] "DS_CURSO"
+
 ```{r}
-ggplot(aes(x = VL_PERC_FINANCIAMENTO, fill = DS_SEXO),
-	data = fies) + 
-facet_wrap( ~ DS_RACA_COR) +
-geom_histogram() +
-scale_fill_brewer(type = 'qual')
+
 ```
+
+
+
+```{r}
+fies[complete.cases(fies),]
+
+```
+
+
 ```{r}
 table(fies$DS_SEXO)
 ```

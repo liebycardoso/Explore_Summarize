@@ -1,4 +1,4 @@
-inT√çTULO por SEU_NOME_AQUI
+FIES por Lieby Cardoso
 ========================================================
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
@@ -74,13 +74,6 @@ summary(fies$IDADE)
 fies$IDADE = as.numeric(round(difftime(Sys.Date(), fies$DT_NASCIMENTO)/365))
 ```
 
-
-
-```{r echo=FALSE, Univariate_Plots}
-# Exclui os regitros com NA
-fies <- fies[complete.cases(fies),]
-```
-
 ```{r}
 # Verifica o total de NA em cada campo
 for (i in 1:17) {
@@ -89,6 +82,15 @@ for (i in 1:17) {
   
 }
 ```
+
+
+```{r echo=FALSE, Univariate_Plots}
+# Exclui os regitros com NA
+fies <- fies[complete.cases(fies),]
+```
+
+
+
 ```{r}
 ```
 ```{r}
@@ -212,18 +214,27 @@ grafico2 <- ggplot(aes(DS_ESTADO_CIVIL), data = fies, colours=DS_SEXO) +
        y="Total", 
        x= "Valor mensalidade - log10")
 
-grafico3 <- ggplot(aes(fies$VL_PERC_FINANCIAMENTO),  data = fies) + 
+grafico3 <- ggplot(aes(fies$ST_ENSINO_MEDIO_ESCOLA_PUBLICA),  data = fies) + 
   geom_bar(fill = I("blue"))+
   #scale_x_continuous(limits = c(40, 110), breaks = seq(40,110,10)) +
-  labs(title="DistribuiÁ„o percentual Financiado", 
+  labs(title="Vindo de escola p˙blica?", 
          y="Total", 
-         x= "% Financiado")
+         x= "S: Sim, N: N„o, P: Parcial")
 
-grid.arrange(grafico1, grafico2,  ncol=1, nrow=2)
+grafico4 <- ggplot(aes(IDADE),  data = fies) + 
+  geom_histogram(fill="blue",
+           aes(y =..density..)) +
+  scale_x_continuous(limits = c(15, 60), breaks = seq(15,60,5)) +
+  geom_density(col=2) + 
+  labs(title="DistribuiÁ„o semestre financiado", 
+       y="Total", 
+       x= "Semestre Financiado")
+
+grid.arrange(grafico1, grafico2, grafico3, grafico4, ncol=2, nrow=2,  heights=1:2, widths=1:2)
 
 ```
 ```{r}
-fies[fies==""] <- NA
+
 ```
 
 ```{r}

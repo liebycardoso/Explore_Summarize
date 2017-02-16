@@ -31,7 +31,7 @@ library(GGally)
 ```{r echo=FALSE, Load_the_Data}
 # Carregamento dos dados
 
-fies <- read.csv('P:/Nanodegree/Explore_Summarize/sample_fies.csv', sep = ';')[ ,c("SG_UF", "NO_MUNICIPIO", "VL_MENSALIDADE", "TP_FIANCA", "NU_ANO_EXERCICIO_INSC", "NU_PERCENTUAL_PROUNI", "NU_PERCENT_SOLICITADO_FINANC", "VL_REPASSE", "DT_NASCIMENTO", "ST_DEFICIENCIA", "ST_ENSINO_MEDIO_ESCOLA_PUBLICA", "DS_SEXO", "DS_ESTADO_CIVIL", "DS_RACA_COR", "VL_PERC_FINANCIAMENTO", "QT_SEMESTRE_FINANCIADO", "DS_CURSO")]
+fies <- read.csv('P:/Nanodegree/P04_Explore_Summarize/Explore_Summarize_R/sample_fies.csv', sep = ';', na.strings=c("","NA"))[ ,c("SG_UF", "NO_MUNICIPIO", "VL_MENSALIDADE", "TP_FIANCA", "NU_ANO_EXERCICIO_INSC", "NU_PERCENTUAL_PROUNI", "NU_PERCENT_SOLICITADO_FINANC", "VL_REPASSE", "DT_NASCIMENTO", "ST_DEFICIENCIA", "ST_ENSINO_MEDIO_ESCOLA_PUBLICA", "DS_SEXO", "DS_ESTADO_CIVIL", "DS_RACA_COR", "VL_PERC_FINANCIAMENTO", "QT_SEMESTRE_FINANCIADO", "DS_CURSO")]
 names(fies)
 
 ```
@@ -63,23 +63,31 @@ fies$DT_NASCIMENTO <-    as.Date(fies$DT_NASCIMENTO, format = "%d/%m/%Y")
 ```{r}
 # Verifica o total de valores nulos no campo de percentual de financiamento concedido que � o mais foco principal
 sum(is.na(fies$VL_PERC_FINANCIAMENTO))
+
+
 ```
 ```{r}
-sum(is.na(fies$SG_UF))
-sum(is.na(fies$ST_ENSINO_MEDIO_ESCOLA_PUBLICA))
-sum(is.na(fies$DS_SEXO))
-sum(is.na(fies$DS_ESTADO_CIVIL))
-sum(is.na(fies$DS_RACA_COR))
-sum(is.na(fies$DS_CURSO))
+summary(fies$IDADE)
+
 ```
 ```{r}
-sum(is.na(fies$TP_FIANCA))
+fies$IDADE = as.numeric(round(difftime(Sys.Date(), fies$DT_NASCIMENTO)/365))
 ```
+
 
 
 ```{r echo=FALSE, Univariate_Plots}
+# Exclui os regitros com NA
+fies <- fies[complete.cases(fies),]
 ```
+
 ```{r}
+# Verifica o total de NA em cada campo
+for (i in 1:17) {
+  print (paste(names(fies[i]) , sum(is.na(fies[i])), sep="="))
+  next
+  
+}
 ```
 ```{r}
 ```
@@ -211,16 +219,15 @@ grafico3 <- ggplot(aes(fies$VL_PERC_FINANCIAMENTO),  data = fies) +
          y="Total", 
          x= "% Financiado")
 
-grid.arrange(grafico1, grafico2,  ncol=2)
+grid.arrange(grafico1, grafico2,  ncol=1, nrow=2)
 
 ```
 ```{r}
 fies[fies==""] <- NA
-fies <- fies[complete.cases(fies),]
 ```
 
 ```{r}
-table(fies$DS_RACA_COR)
+
 ```
 
 
@@ -228,36 +235,12 @@ table(fies$DS_RACA_COR)
 ggplot(aes(x=DS_ESTADO_CIVIL , fill=DS_SEXO ),
        data = fies) + geom_bar()
 ```
-```
 
 ```{r}
 table(hr$left)
 by(hr$satisfaction_level, hr$left, summary)
 
 ```
-
- [1] "SG_UF"                          "NO_MUNICIPIO"                   "VL_MENSALIDADE"                 "TP_FIANCA"                     
- [5] "NU_ANO_EXERCICIO_INSC"          "NU_PERCENTUAL_PROUNI"           "NU_PERCENT_SOLICITADO_FINANC"   "VL_REPASSE"                    
- [9] "DT_NASCIMENTO"                  "ST_DEFICIENCIA"                 "ST_ENSINO_MEDIO_ESCOLA_PUBLICA" "DS_SEXO"                       
-[13] "DS_ESTADO_CIVIL"                "DS_RACA_COR"                    "VL_PERC_FINANCIAMENTO"          "QT_SEMESTRE_FINANCIADO"        
-[17] "DS_CURSO"
-
-```{r}
-
-```
-
-
-
-```{r}
-fies[complete.cases(fies),]
-
-```
-
-
-```{r}
-table(fies$DS_SEXO)
-```
-
 
 ### Quais são os principais atributos de interesse deste conjunto de dados?
 
@@ -275,6 +258,11 @@ table(fies$DS_SEXO)
 ```
 
 # Análise Bivariada
+
+```{r}
+with(fies, cor.test(VL_PERC_FINANCIAMENTO, IDADE, method = 'pearson'))
+```
+
 
 ### Discuta sobre alguns dos relacionamentos observados nesta parte da investigação. Como os atributos de interesse variaram no conjunto de dados?
 

@@ -1,4 +1,4 @@
-FIES por Lieby Cardoso
+HR por Lieby Cardoso
 ========================================================
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
@@ -26,10 +26,13 @@ library(dplyr)
 library(GGally)
 
 #library(maptools)
+
+library(corrplot)
+library(formattable)
 ```
 
-```{r}
-library(scales)
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+#library(scales)
 library(memisc)
 library(lattice)
 library(MASS)
@@ -38,11 +41,12 @@ library(reshape)
 library(plyr)
 ```
 
+
 ```{r echo=FALSE, Load_the_Data}
 # Carregamento dos dados
 
-fies <- read.csv('P:/Nanodegree/P04_Explore_Summarize/Explore_Summarize_R/sample_fies.csv', sep = ';', na.strings=c("","NA"))[ ,c("SG_UF", "NO_MUNICIPIO", "VL_MENSALIDADE", "TP_FIANCA", "NU_ANO_EXERCICIO_INSC", "NU_PERCENTUAL_PROUNI", "NU_PERCENT_SOLICITADO_FINANC", "VL_REPASSE", "DT_NASCIMENTO", "ST_DEFICIENCIA", "ST_ENSINO_MEDIO_ESCOLA_PUBLICA", "DS_SEXO", "DS_ESTADO_CIVIL", "DS_RACA_COR", "VL_PERC_FINANCIAMENTO", "QT_SEMESTRE_FINANCIADO", "DS_CURSO")]
-names(fies)
+hr <- read.csv('P:/Nanodegree/P04_Explore_Summarize/Explore_Summarize_R/HR_data.csv', sep = ',', na.strings=c("","NA"))
+names(hr)
 
 ```
 
@@ -56,28 +60,21 @@ counties.map@data$noise <- rnorm(nrow(counties.map@data))
 
 
 ```{r}
-str(fies)
+str(hr)
 ```
 ```{r}
-fies$VL_REPASSE <- gsub(",",".",fies$VL_REPASSE)
-fies$VL_MENSALIDADE   <- gsub(",",".",fies$VL_MENSALIDADE)
 
 ```
 
 ```{r}
-fies$VL_REPASSE <-  as.numeric(as.character(fies$VL_REPASSE))
-fies$VL_MENSALIDADE <-  as.numeric(as.character(fies$VL_MENSALIDADE))
-fies$DT_NASCIMENTO <-    as.Date(fies$DT_NASCIMENTO, format = "%d/%m/%Y")
 ```
 
 ```{r}
 # Verifica o total de valores nulos no campo de percentual de financiamento concedido que é o mais foco principal
-sum(is.na(fies$VL_PERC_FINANCIAMENTO))
-
 
 ```
 ```{r}
-summary(fies$IDADE)
+summary(hr)
 
 ```
 ```{r}
@@ -86,8 +83,8 @@ fies$IDADE = as.numeric(round(difftime(Sys.Date(), fies$DT_NASCIMENTO)/365))
 
 ```{r}
 # Verifica o total de NA em cada campo
-for (i in 1:17) {
-  print (paste(names(fies[i]) , sum(is.na(fies[i])), sep="="))
+for (i in 1:9) {
+  print (paste(names(hr[i]) , sum(is.na(hr[i])), sep="="))
   next
   
 }
@@ -102,27 +99,30 @@ fies <- fies[complete.cases(fies),]
 
 
 ```{r}
-fies_subset <- subset(fies, select= c("VL_PERC_FINANCIAMENTO","ST_ENSINO_MEDIO_ESCOLA_PUBLICA", "DS_RACA_COR", "DS_ESTADO_CIVIL" , "DS_SEXO", "IDADE"))
-names(fies_subset)
 ```
 ```{r}
-set.seed(20022012)
-ggpairs(fies_subset, wrap = c(I('.'), outlier.shape = I('.')))
+table(hr$salary)
+table(hr$sales)
 ```
 ```{r}
-fies$sexo_le = c("Masculino" = 0, "Feminino" = 1)[as.character(fies$DS_SEXO)]
-fies$tp_escola_le = c("S" = 0, "N" = 1, "P"=2)[as.character(fies$ST_ENSINO_MEDIO_ESCOLA_PUBLICA)]
-fies$raca_le = c("Amarelo" = 0, "Branco" = 1, "Índio"=2, "Negro"=3, "Pardo" =4)[as.character(fies$DS_RACA_COR)]
-fies$estado_civil_le = c("Casado" = 0, "Solteiro" = 1, "Divorciado"=2, "Viúvo"=3, "União Estável" =4, "Separado" = 5)[as.character(fies$DS_ESTADO_CIVIL)]
+levels(hr$salary)
+levels(hr$sales)
+```
+ 
+
+```{r}
+hr$salary_le = c("high"=0, "low"=1, "medium"=2)[as.character(hr$salary)]
+hr$sales_le = c("accounting"=0, "hr"=1, "IT"=2, "management"=3,  "marketing"=4,  "product_mng"=5, "RandD"=6, "sales"=7, "support"=8, "technical"=9)[as.character(hr$sales)]
+```
+
+```{r}
+table(hr$salary_le)
+table(hr$sales_le)
+```
 
 
-fies$estado_civil_le[1:15]
-```
 ```{r}
-fies_subset <- subset(fies, select= c("VL_PERC_FINANCIAMENTO","sexo_le", "tp_escola_le", "raca_le" , "estado_civil_le", "IDADE"))
-```
-```{r}
-ggpairs(fies_subset, wrap = c(I('.'), outlier.shape = I('.')))
+ggpairs(hr, wrap = c(I('.'), outlier.shape = I('.')))
 ```
 
 
@@ -134,7 +134,13 @@ ggpairs(fies_subset, wrap = c(I('.'), outlier.shape = I('.')))
 
 ### Qual Ã© a estrutura do conjunto de dados?
 ```{r}
-
+hr %>% 
+  count(sales, left) %>% 
+  mutate(
+    n = comma(n, 0)
+  ) %>% 
+  spread(left, n) %>% 
+  formattable(list(area(T, 2:2) ~ color_tile("white", "orange")), align = 'l')
 ```
 #O principal objetivo é investigar a influência das demais variáveis na decisão de saída de uma pessoa de uma empresa e do seu nível de satisfação.
 ```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
@@ -143,12 +149,21 @@ ggpairs(fies_subset, wrap = c(I('.'), outlier.shape = I('.')))
 # Verifica se existem valores nulos no conjunto de dados hr
 
 ```{r}
-table(fies$DS_RACA_COR)
+cor(hr[,1:8])
+```
+
+
+
+```{r}
+corrplot(cor(hr[,1:8]), method="circle")
 ```
 ```{r}
+ggplot(hr, aes(x=factor(time_spend_company), ))
 
 ```
 ```{r}
+#hr_good_leaving_people <- hr_leaving_people %>% filter(last_evaluation >= 0.70 | time_spend_company >= 4 | number_project > 5)
+#nrow(hr_good_leaving_people)
 
 ```
 
@@ -302,7 +317,7 @@ by(hr$satisfaction_level, hr$left, summary)
 # AnÃ¡lise Bivariada
 
 ```{r}
-with(fies, cor.test(VL_PERC_FINANCIAMENTO, IDADE, method = 'pearson'))
+with(hr, cor.test(salary_le, satisfaction_level, method = 'pearson'))
 ```
 
 

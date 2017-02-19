@@ -1,6 +1,17 @@
 HR por Lieby Cardoso
 ========================================================
 
+Employee satisfaction level
+Last evaluation
+Number of projects
+Average monthly hours
+Time spent at the company
+Whether they have had a work accident
+Whether they have had a promotion in the last 5 years
+Department
+Salary
+Whether the employee has left
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
 # Carregue aqui todos os pacotes utilizados 
 # na sua anÃ¡lise realizada neste arquivo fonte.
@@ -24,23 +35,31 @@ library(dplyr)
 
 # Templates adicionais do ggplot2
 library(GGally)
+library(plyr)
 
 #library(maptools)
 
 library(corrplot)
-library(formattable)
-```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
-#library(scales)
+library(formattable)
+
+library(RColorBrewer)
 library(memisc)
 library(lattice)
 library(MASS)
 library(car)
 library(reshape)
-library(plyr)
 ```
 
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+#library(scales)
+
+
+```
+
+```{r}
+
+```
 
 ```{r echo=FALSE, Load_the_Data}
 # Carregamento dos dados
@@ -48,14 +67,6 @@ library(plyr)
 hr <- read.csv('P:/Nanodegree/P04_Explore_Summarize/Explore_Summarize_R/HR_data.csv', sep = ',', na.strings=c("","NA"))
 names(hr)
 
-```
-
-```{r}
-setwd("C:/Nanodegree/Explore_Summarize")
-state.map <- readShapeSpatial("estados_2010.shp")
-counties.map <- readShapeSpatial("municipios_2010.shp")
-## this is the variable we will be plotting
-counties.map@data$noise <- rnorm(nrow(counties.map@data))
 ```
 
 
@@ -93,7 +104,7 @@ for (i in 1:9) {
 
 ```{r echo=FALSE, Univariate_Plots}
 # Exclui os regitros com NA
-fies <- fies[complete.cases(fies),]
+hr <- hr[complete.cases(hr),]
 ```
 
 
@@ -111,42 +122,46 @@ levels(hr$sales)
  
 
 ```{r}
-hr$salary_le = c("high"=0, "low"=1, "medium"=2)[as.character(hr$salary)]
-hr$sales_le = c("accounting"=0, "hr"=1, "IT"=2, "management"=3,  "marketing"=4,  "product_mng"=5, "RandD"=6, "sales"=7, "support"=8, "technical"=9)[as.character(hr$sales)]
+hr$salary_le = c("high"=0, "low"=1, "medium"=2)[as.numeric(hr$salary)]
+hr$sales_le = c("accounting"=0, "hr"=1, "IT"=2, "management"=3,  "marketing"=4,  "product_mng"=5, "RandD"=6, "sales"=7, "support"=8, "technical"=9)[as.numeric(hr$sales)]
 ```
 
 ```{r}
 table(hr$salary_le)
 table(hr$sales_le)
 ```
+```{r}
+hr_ggpairs = hr[,c(1,2,3,4,5,6,7,8,11,12)]
+g <- ggpairs(hr_ggpairs )
+```
 
 
 ```{r}
-ggpairs(hr, wrap = c(I('.'), outlier.shape = I('.')))
+# Imprime a matriz com todos os gráficos
+svg("ggpairs_hr.svg")
+print(g)
+dev.off()
+```
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+ggplot(aes(x = age, y = friend_count), 
+              data = subset(pf, !is.na(year_joined.bucket))) + 
+  geom_line(aes(color = year_joined.bucket), stat = "summary", fun.y = mean) +
+geom_line(stat = "summary", fun.y = mean, linetype = 2)
 ```
 
 
 
-# SÃ§Ã£o de GrÃ¡ficos Univariados
-
-
-# AnÃ¡lise Univariada
-
-### Qual Ã© a estrutura do conjunto de dados?
-```{r}
-hr %>% 
-  count(sales, left) %>% 
-  mutate(
-    n = comma(n, 0)
-  ) %>% 
-  spread(left, n) %>% 
-  formattable(list(area(T, 2:2) ~ color_tile("white", "orange")), align = 'l')
-```
-#O principal objetivo é investigar a influência das demais variáveis na decisão de saída de uma pessoa de uma empresa e do seu nível de satisfação.
 ```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
 
 ```
-# Verifica se existem valores nulos no conjunto de dados hr
 
 ```{r}
 cor(hr[,1:8])
@@ -158,7 +173,6 @@ cor(hr[,1:8])
 corrplot(cor(hr[,1:8]), method="circle")
 ```
 ```{r}
-ggplot(hr, aes(x=factor(time_spend_company), ))
 
 ```
 ```{r}
@@ -168,7 +182,7 @@ ggplot(hr, aes(x=factor(time_spend_company), ))
 ```
 
 ```{r}
-
+summary(hr$promotion_last_5years)
 ```
 
 ```{r}
@@ -216,38 +230,45 @@ ggplot(hr, aes(x=factor(time_spend_company), ))
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ```
 
+
+## Como é a empresa?
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
-grafico1 <- ggplot(aes(QT_SEMESTRE_FINANCIADO),  data = fies) + 
-  geom_bar(fill="orange") +
-  scale_x_continuous(limits = c(4, 12), breaks = seq(4,12,1)) +
-  labs(title="Distribuição semestre financiado", 
+grafico1 <- ggplot(aes(average_montly_hours),  data = hr) + 
+  geom_histogram(fill="orange") +
+  #scale_x_continuous(limits = c(4, 12), breaks = seq(4,12,1)) +
+  #scale_x_log10() +
+  #geom_density(col=2) + 
+  labs(title="Hora média mensal trabalhada", 
        y="Total", 
-       x= "Semestre Financiado")
+       x= "Hora mensal trabalhada")
 
-grafico2 <- ggplot(aes(VL_MENSALIDADE ), data = fies) + 
-  geom_histogram(fill="orange",
-                 aes(y =..density..)) +
-  scale_x_log10() +
-  geom_density(col=2) + 
-  labs(title="Distribuição mensalidade", 
+grafico2 <- ggplot(aes(time_spend_company), data = hr) + 
+  geom_histogram(fill="orange") +
+                 #aes(y =..density..)) +
+  
+  scale_x_continuous(limits = c(0, 11), breaks = seq(0,11,1)) +
+  labs(title="Anos trabalhados na empresa", 
        y="Total", 
-       x= "Valor mensalidade - log10")
+       x= "Anos de trabalho")
 
-grafico3 <- ggplot(aes(fies$VL_PERC_FINANCIAMENTO),  data = fies) + 
-  geom_histogram(fill = I("orange"))+
-  scale_x_continuous(limits = c(40, 110), breaks = seq(40,110,10)) +
-  labs(title="Distribuição percentual Financiado", 
+grafico3 <- ggplot(aes(Work_accident),  data = hr) + 
+  geom_bar(fill = I("orange"))+
+  scale_x_continuous(limits = c(-.5, 1.1), breaks = seq(0,1,1)) +
+  labs(title="Total de acidentes de trabalho", 
          y="Total", 
-         x= "% Financiado")
+         x= "Acidentes")
 
 grid.arrange(grafico1, grafico2, grafico3, nrow=3)
 ```
 
-### Conhecendo os benefíciarios do FIES
+### Perfil dos funcionarios
+ "satisfaction_level"    "last_evaluation"       "number_project"        "average_montly_hours"  "time_spend_company"    "Work_accident"        
+ [7] "left"                  "promotion_last_5years" "sales"                 "salary" 
 ```{r}
-grafico1 <- ggplot(aes(DS_SEXO),  data = fies) + 
+grafico1 <- ggplot(aes(satisfaction_level),  data = hr) + 
   geom_bar(fill="blue") +
+  facet_wrap( ~ left) +
   #scale_x_continuous(limits = c(4, 12), breaks = seq(4,12,1)) +
   labs(title="Homens/Mulheres", 
        y="Total", 
@@ -280,17 +301,42 @@ grid.arrange(grafico1, grafico2, grafico3, grafico4, ncol=2, nrow=2,  heights=1:
 
 ```
 ```{r}
-
+ggplot(aes(satisfaction_level),  data = hr) + 
+  geom_bar(fill="blue") +
+  facet_wrap( ~ left) +
+  #scale_x_continuous(limits = c(4, 12), breaks = seq(4,12,1)) +
+  labs(title="Satisfação por status 0=Contratado, 1=Desligado", 
+       y="Total", 
+       x= "Nível de satisfação")
 ```
 
 ```{r}
-
+ggplot(aes(promotion_last_5years),  data = hr) + 
+  geom_bar(fill="blue") +
+  facet_wrap( ~ left) +
+  #scale_x_continuous(limits = c(4, 12), breaks = seq(4,12,1)) +
+  labs(title="Promoção nos ultimos 5 anos (0=Contratado, 1=Desligado)", 
+       y="Total", 
+       x= "Promoções") +
+  scale_colour_brewer(palette="Set1")
+```
+```{r}
+ggplot(aes(x=sales, fill=salary), 
+       data = hr) + 
+  geom_histogram(stat = 'count') +
+  facet_wrap( ~ left) 
 ```
 
 
 ```{r}
-ggplot(aes(x=DS_ESTADO_CIVIL , fill=DS_SEXO ),
-       data = fies) + geom_bar()
+ggplot(aes(x=sales , fill=salary ),
+       data = hr) + geom_bar()
+```
+
+
+```{r}
+ggplot(aes(x=sales , fill=satisfaction_level ),
+       data = hr) + geom_bar()
 ```
 
 ```{r}
@@ -299,11 +345,38 @@ by(hr$satisfaction_level, hr$left, summary)
 
 ```
 
+```{r}
+hr %>% 
+  count(left) %>% 
+  formattable(align = 'l')
+```
+
+# SÃ§Ã£o de GrÃ¡ficos Univariados
+
+
+# AnÃ¡lise Univariada
+
+### Qual Ã© a estrutura do conjunto de dados?
+A estrutura de dados é composta por 14.999 observações, 10 variáveis importadas com o arquivo original, mais duas várias criadas para contabilização.
+
+A variável left representa os colaboradores que ainda estão na empresa com o valor 0 e 1 para colaboradores desligados.
+
+A maioria das variáveis são númericas e duas são categóricas representadas por fatores: sales com 10 níveis e salary com 3.
+
 ### Quais sÃ£o os principais atributos de interesse deste conjunto de dados?
+A principal variável de interesse do conjunto é left, que informa se o colaborador está na empresa ou se foi desligado. A variável com o nível de satisfação (satisfaction_level) também será foco da análise, uma vez que, a correlação das outras variáveis com ela podem ajudar a compreender a os motivos que levaram as pessoas a deixarem a empresa.
 
 ### Quais outros atributos vocÃª acha que podem lhe auxiliar na investigaÃ§Ã£o destes atributos de interesse?
+promotion_last_5years: O total de promoções recebidas (promotion_last_5years) pode gerar uma insatisfação no colaborador se ele supor que não foi reconhecido;
+time_spend_company: O tempo passado numa empresa pode gerar uma necessidade de sair da empresa, nem sempre por uma causa negativa, mas pela vontade de viver novos desafios; 
+salary: Essa variável é categorica com os valores baixo, médio e alto. A relação da remuneração com o satisfação e a decisão de saída será avaliado, apesar de várias pesquisas indicarem que o salario nem sempre é um grande influenciador nesta decisão. É possível que variáveis como número de promoções e nota recebida na ultima avaliação pesem mais na sensação de ter o trabalho reconhecido e este é um fator importante.
+number_project: Essa variável não diz muita coisa, mas podemos supor que pessoas com mais números de projetos eram mais engajadas?
+sales: Será que tem um departamento problemático?  
 
 ### VocÃª criou novas variÃ¡veis a partir dos atributos existentes no conjunto de dados?
+O conjunto de dados estava bem consistente, as alterações realizadas foram para adaptar as informações para análise. Salary e Sales são do tipo factor, para elas criei duas novas variaveis, Salary_le e Sales_le para representa-las numericamente. É uma especíe de versão LabelEncoder de cada uma delas.
+
+Pesquisei variaveis NA, mas o grupo não tinha nenhuma. Variáveis sem conteúdo não foram pesquisadas porque na importação do arquivo eu atribui por padrão o valor NA para elas (na.strings=c("","NA")), então, automaticamente ao pesquisar por NA, eu já estava pesquisando pelas vazias.
 
 ### Dos atributos investigados, distribuiÃ§Ãµes incomuns foram encontradas? VocÃª aplicou operaÃ§Ãµes nos dados para limpÃ¡-los, ajustÃ¡-los ou mudar a forma dos dados? Se sim, por quÃª?
 

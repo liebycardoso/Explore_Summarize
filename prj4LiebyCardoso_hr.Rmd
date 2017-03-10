@@ -1,3 +1,1069 @@
+<<<<<<< HEAD
+---
+title: <span style="color:orange">Recursos Humanos - Quem está deixando a empresa?</span>
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+por Lieby Cardoso
+========================================================
+
+Este conjunto de dados foi simulado e disponibilizado por Ludovic Benistant para o site Kaggle.
+Fonte: [Kaggle - Ludovic Benistant - Hr Analytics](https://www.kaggle.com/ludobenistant/hr-analytics)
+
+**Atributos:**
+
+ 1. satisfaction_level: Nível de satisfação do colaborador
+ 2. last_evaluation: Nota da última avaliação       
+ 3. number_project: Número de projetos trabalhados        
+ 4. average_montly_hours: Média mensal de horas trabalhadas
+ 5. time_spend_company: Anos de trabalho na empresa
+ 6. Work_accident: 0 - Não teve acidente de trabalho e 1 - Teve acidente de trabalho        
+ 7. left: Indicador de demissão, 0 - Contratado e 1 - Desligado
+ 8. promotion_last_5years: Indicativo de promoção, 0 - Não e 1 - Sim
+ 9. sales: Departamento
+ 10. salary: Classificação do salário, Baixo, Médio e Alto
+
+**Objetivo**
+O objetivo deste projeto é explorar as variáveis do conjunto de dados hr que podem auxiliar na identificação dos fatores que levaram alguns colaboradores a deixarem a empresa. Durante a investigação estas perguntas serão respondidas:
+
+1. Os colaboradores que saíram recebiam baixo salário?
+2. Será que é perceptível a insatisfação do colaborador?
+3. Excesso de trabalho, foi um fator negativo?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+# Carregue aqui todos os pacotes utilizados 
+# na sua análise realizada neste arquivo fonte.
+
+# Note que o parÃ¢metro "echo" foi definido como FALSE neste cÃ³digo.
+# Isso previne que o cÃ³digo apresente resultados formatados em HTML.
+# Você deve definir echo=FALSE para todos os blocos de cÃ³digo no seu arquivo.
+
+library(ggplot2)
+
+library(ggthemes) 
+
+# Cria objetos gráficos e posiciona em uma página
+library(gridExtra)
+
+# Facilita a limpeza dos dados spread() & gather()
+library(tidyr)
+
+# Manipulação de dados
+library(dplyr)
+
+# Templates adicionais do ggplot2
+library(GGally)
+library(plyr)
+library(corrplot)
+library(formattable)
+library(RColorBrewer)
+library(memisc)
+library(lattice)
+library(MASS)
+library(car)
+library(reshape)
+library(formattable)
+library(rpart)
+library(pROC)
+library(rpart.plot)
+```
+
+
+```{r echo=FALSE, Load_the_Data}
+# Carregamento dos dados
+
+hr <- read.csv('P:/Nanodegree/P04_Explore_Summarize/Explore_Summarize_R/HR_data.csv', 
+               sep = ',', 
+               na.strings=c("","NA"))
+names(hr)
+
+```
+
+** Visão Geral dos dados**
+
+Sumário das informações:
+```{r echo=FALSE}
+summary(hr)
+```
+Os dados são consistentes e analisando o valor mínimo, médio, mediana e valor máximo, não foi possível verificar nesta análise inicial a existência de outliers.
+
+
+Vamos conferir qual a estrutura dos dados, e se será necessário manipular os tipos das variáveis para auxiliar a análise.
+
+```{r}
+str(hr)
+```
+
+O conjunto de dados é composto por 14.999 observações e 10 variáveis. 
+Não tem nenhuma variável que seja uma identificação única do colaborador, então vamos considerar que cada registro corresponde a uma pessoa, sem duplicação.
+ 
+As variáveis sales e salary são do tipo factor, vou criar duas variáveis não categóricas baseadas nelas. Essas duas variáveis serão utilizadas posteriormente no cálculo da correlação. 
+
+
+```{r}
+hr$left <- factor(hr$left, levels=c(0,1),labels=c("Contratado", "Demitido"))
+```
+
+O nível de satisfação do colaborador será agrupado em três níveis: SIM, NÃO e REGULAR.
+
+```{r}
+# Cria novo campo satisfied no conjunto de dados hr
+hr$satisfied <- as.factor(ifelse(hr$satisfaction_level<=.40, "NAO", 
+                                 ifelse(hr$satisfaction_level<=.70, "REGULAR", 
+                                        "SIM")))
+```
+
+Conferindo os campos criados:
+```{r}
+table(hr$satisfied)
+```
+
+
+Será que existem valores nUlos? Vamos percorrer todas as variáveis somando todos os valores nulos. 
+
+```{r}
+# Verifica o total de NA em cada campo
+colSums(is.na(hr))
+
+```
+
+O conjunto de dados está completamente preenchido e não será necessário manipular estes valores.
+
+# Seção de Gráficos Univariados
+
+Nesta seção, as variáveis foram agrupadas em dois grupos, no primeiro vamos explorar as informações que nos ajudam a caracterizar a empresa e no segundo, as variáveis que nos auxiliam a entender o perfil dos colaboradores contratados e desligados.
+
+## Como é a empresa?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(as.factor(left)),  data = hr) + 
+  geom_histogram(stat   = "count",
+                 fill   = "#6699CC", 
+                 colour = "#666666") +
+  stat_count(aes(y     = ..count..,
+                 label = ..count..),
+                 geom  = "text", 
+                 vjust = -0.5) +
+  scale_x_discrete(labels = c("0" = "Contratado", 
+                              "1" = "Desligado")) +
+  labs(title = "Total de colaboradores Contratados x Desligados", 
+       y     = "Total colaboradores", 
+       x     = "Status da contratação")
+```
+  
+Proporção de desligados:
+
+```{r}
+prop.table(table(hr$left))
+```
+
+Left, a variável foco do análise, está dividida entre contratados, ou seja, os que ainda estão na empresa e os desligados, que não fazem mais parte da empresa. Dos 14.999 colaboradores totais, 3.571 foram desligados e 11.428 estão na ativa. A proporção de colaboradores que deixaram a empresa é de 24% do conjunto de dados.
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(as.factor(time_spend_company)), data = hr) + 
+  geom_histogram(stat   = "count", 
+                 fill   = "#6699CC",  
+                 colour = "#666666") +
+   stat_count(aes(y     = ..count..,
+                 label = ..count..),
+                 geom  = "text", 
+                 vjust = -0.5) +
+  labs(title = "Total de colaboradores por ano trabalhados na empresa", 
+       y     = "Total colaboradores", 
+       x     = "Total de anos trabalhados")
+```
+  
+A distribuição é assimetrica positiva, sendo que há uma redução do número de colaboradores por ano a medida que se aproxima da causa direita. Vamos conferir essa tendência e confirmar se o valor de mediana menor que o da média através do sumário estatístico da variável time_spend_company:
+
+```{r}
+summary(hr$time_spend_company)
+```
+
+A mediana é 3 anos, correspondendo ao ano que de fato tem a maior quantidade de colaboradores, sendo 6.443 pessoas. O maior volume (75%) de colaboradores do conjunto de dados trabalhou entre 2 e 4, sendo o limite do 3º quartil no 4º ano.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(as.factor(Work_accident)),  data = hr) + 
+  geom_histogram(stat   = "count",
+                 fill   = "#6699CC", 
+                 colour = "#666666") +
+  stat_count(aes(y     = ..count..,
+                 label = ..count..),
+                 geom  = "text", 
+                 vjust = -0.5) +
+  scale_x_discrete(labels = c("0" = "NÂO", "1" = "SIM")) +
+  labs(title = "Ocorreu acidente de trabalho?", 
+       y     = "Total", 
+       x     = "Acidente de trabalho")
+```
+  
+Este é um dado inesperado para mim. Entre o total de 14.999 colaboradores registrados no conjuntos, 2.169 sofreram acidente de trabalho, ou seja, 14% do total. Para traçar um comparativo, segundo dados do Fundacentro - Ministério do Trabalho, em 2013, foram registradas na previdência 717.911 pessoas acidentadas, num total de 96 milhões de pessoas empregadas. Isso nos dá um percentual de 0,75%, bem inferior aos 14% registrados pela nossa empresa. 
+  
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(average_montly_hours),  data = hr) + 
+  geom_histogram(aes(y = ..density..),
+                 binwidth = 10,
+                 fill   = "#6699CC", 
+                 colour = "#666666") +
+  scale_x_continuous(breaks = seq(95,330,20)) +
+  labs(title = "Média mensal de horas trabalhadas", 
+       y     = "Total", 
+       x     = "Hora mensal trabalhada") +
+  geom_density()
+
+```
+ 
+A média mensal de horas trabalhadas tem uma distribuição bimodal, apresentando um pico entre 140 e 155 horas e outro aproximadamente entre 245 e 265 horas.
+
+Sumário estatístico da variável average_montly_hours:
+  
+```{r}
+summary(hr$average_montly_hours)
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(sales),  data = hr) + 
+  geom_histogram(stat   = "count",
+                 fill   = "#6699CC", 
+                 colour = "#666666") +
+  stat_count(aes(y     = ..count..,
+                 label = ..count..),
+                 geom  = "text", 
+                 vjust = -0.5) +
+  labs(title = "Total de colaboradores por departamento", 
+       y     = "Total", 
+       x     = "Departamentos")
+```
+
+```{r}
+# Agrupa o total de resultados por departamento
+Funcionarios_departamento <- aggregate(hr$sales, by=list(hr$sales),
+                                       FUN = length)
+
+formattable(Funcionarios_departamento, 
+            list(x = color_tile("white", "#6699CC")))
+```
+ 
+
+O departamento Sales é o com a maior quantidade de colaboradores, seguido pelo departamento Technical e Support, somando 9.089 colaboradores. O Management é o menor deles com 630 colaboradores. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ ggplot(aes(as.factor(promotion_last_5years)),  data = hr) + 
+  geom_bar(fill   = "#6699CC",  
+           colour = "#666666") +
+  stat_count(aes(y     = ..count..,
+                 label = ..count..),
+                 geom  = "text", 
+                 vjust = -0.5) +
+  scale_x_discrete(labels = c("0" = "NÂO", "1" = "SIM")) +
+  labs(title = "Promoção nos ultimos 5 anos", 
+       y     = "Total", 
+       x     = "Promoções") 
+```
+
+Pouquíssimas pessoas promovidas. Somente 2% das pessoas já foram promovidas. Conhecer a política de plano de carreira seria importante para entender essa escassez de promoções. 
+ 
+### Perfil dos colaboradores
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(as.factor(number_project)),  data = hr) + 
+  geom_histogram(stat   = "count",
+                 fill   = "#6699CC", 
+                 colour = "#666666") +
+  stat_count(aes(y     = ..count..,
+                 label = ..count..),
+                 geom  = "text", 
+                 vjust = -0.5) +
+  labs(title = "Total de projetos trabalhados", 
+       y     = "Total", 
+       x     = "Número de projetos trabalhados")
+```
+  
+Não há registro de que alguém tenha trabalhado em um único. Os colaboradores trabalharam em no mínimo 2 e no máximo 7 projetos. 
+
+```{r}
+summary(hr$number_project)
+```
+Na média as pessoas trabalharam em 4 projetos.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(last_evaluation),  data = hr) + 
+  geom_histogram(binwidth = 0.05,  
+                 fill     = "#6699CC",  
+                 colour   = "#666666") +
+  scale_x_continuous(breaks = seq(0.3,1.0,0.1)) +
+  labs(title = "Nota recebida na última Avaliação", 
+       y     = "Total de colaboradores", 
+       x     = "Nota da Avaliação")
+
+```
+  
+```{r}
+sum(hr$last_evaluation >= 0.7)
+```
+
+A empresa é composta por uma maioria de colaboradores com avaliação média a alta. Para esta análise vamos considerar que uma nota igual ou superior a 7 é considerada alta. Assim, temos 8.015 colaboradores bem avaliados pela empresa, isso corresponde a 53% das pessoas. 
+
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# grafico1: Nível de satisfação
+ggplot(aes(satisfaction_level),  data = hr) + 
+  geom_bar(binwidth = 0.1,  
+           fill     = "#6699CC",  
+           colour   = "#666666") +
+  scale_x_continuous(breaks = seq(0.1,1.0,0.1)) +
+  #facet_wrap( ~ left) +
+  labs(title = "Nível de satisfação dos contratados e desligados", 
+       y     = "Total de colaboradores", 
+       x     = "Nível de satisfação")
+
+```
+
+```{r}
+sum(hr$satisfaction_level <= 0.3)
+```
+
+Diferente da nota recebida na última avaliação, nós conseguimos observar que existem colaboradores com um nível de satisfação baixo, sendo que 1.941 pessoas registraram um nível de satisfação abaixo de 0.3. Para comparar com a nota dada pela empresa, vamos agrupar essa variável em uma faixa de "satisfação alta" da mesma forma que fizemos com a variável last_evaluation.
+
+  
+```{r}
+sum(hr$satisfaction_level >= 0.7)
+```
+
+6.503 pessoas atingiram um nível de satisfação alta. 
+
+Para facilitar a comparação, agrupei as informações entre contratados e demitidos. O fato de ter recebido ou não promoção nos últimos anos não variou de maneira significativa entre os dois grupos.
+
+O maior grupo de satisfeitos está entre os que ainda estão contratados, apesar de terem colaboradores com uma satisfação baixa, o maior pico de insatisfeitos está entre os desligados. Observa-se que alguns colaboradores com um nível alto de satisfação deixaram a empresa, e isto será investigado no decorrer deste projeto.
+
+A distribuição do nível de satisfação e da nota da última avaliação é bem similar nos dois grupos. Além dos satisfeitos, colaboradores bem avaliados também deixaram a empresa. 
+
+
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(satisfied),  data = hr) + 
+  geom_histogram(stat     = "count", 
+                 binwidth = 0.05,  
+                 fill     = "#6699CC",  
+                 colour   = "#666666") +
+  stat_count(aes(y     = ..count..,
+                 label = ..count..),
+                 geom  = "text", 
+                 vjust = -0.5) +
+  facet_wrap( ~ left) +
+  labs(title = "Total por faixa de satisfação  - (0=Contratado, 1=Desligado)", 
+       y     = "Total", 
+       x     = "Faixa de satisfação")
+```
+
+Para os desligados, os insatisfeitos formam o maior grupo, já no grupo dos que ainda são colaboradores o maior grupo é dos satisfeitos, seguido dos que tem uma satisfação regular.
+
+# Análise Univariada
+
+### Qual é a estrutura do conjunto de dados?
+A estrutura de dados é composta por 14.999 observações, 10 variáveis importadas com o arquivo original. Foi adicionado a variável satisfied para representar em 3 faixas (SIM, REGULAR, NÃO) a satisfação do colaborador.
+
+A variável left representa os colaboradores que ainda estão na empresa com o valor para colaboradores que permanecem na empresa e 1 para colaboradores desligados.
+
+A maioria das variáveis são numéricas e duas são categóricas representadas por fatores: sales com 10 níveis e salary com 3.
+
+### Quais são os principais atributos de interesse deste conjunto de dados?
+A principal variável de interesse do conjunto é left, que informa se o colaborador está na empresa ou se foi desligado. A variável com o nível de satisfação (satisfaction_level) também será foco da análise, uma vez que, a correlação das outras variáveis com ela pode ajudar a compreender os motivos que levaram as pessoas a deixarem a empresa.
+
+### Quais outros atributos você acha que podem lhe auxiliar na investigação destes atributos de interesse?
+1. promotion_last_5years: O total de promoções recebidas (promotion_last_5years) pode gerar uma insatisfação no colaborador se ele supor que não foi reconhecido;
+
+2. time_spend_company: O tempo passado numa empresa pode gerar uma necessidade de sair da empresa, nem sempre por uma causa negativa, mas pela vontade de viver novos desafios;
+
+3. salary: Essa variável é categorica com os valores baixo, médio e alto. A relação da remuneração com o satisfação e a decisão de saída será avaliado, apesar de várias pesquisas indicarem que o salário nem sempre é um grande influenciador nesta decisão. É possível que variáveis como número de promoções e nota recebida na ultima avaliação pesem mais na sensação de ter o trabalho reconhecido e este é um fator importante;
+
+4. number_project: Esta variável traz o total de projetos trabalhados pela pessoa, não sabemos se é o total em determinado período ou durante toda a permanência na empresa, mas, mesmo assim, podemos explorar questões como: as pessoas com mais números de projetos eram mais satisfeitas ou se sentiam sobrecarregadas e deixaram a empresa?
+
+5. sales: Há algum departamento problemático com baixo nível de satisfação? Acredito que esta questão é importante de ser investigada e pode ser impactante no resultado final.  
+
+### Você criou novas variáveis a partir dos atributos existentes no conjunto de dados?
+O conjunto de dados estava bem consistente, as alterações realizadas foram para adaptar as informações para análise. 
+
+Foi criada a variável satisfied, do tipo factor com 3 níveis: SIM, NAO e REGULAR. O objetivo desse campo é facilitar na visualização das faixas de satisfação dos colaboradores. As faixas definidas para este projeto sem qualquer compromisso com valores padrões de um departamento de recursos humanos.
+
+
+### Dos atributos investigados, distribuições incomuns foram encontradas? Você aplicou operações nos dados para limpá-los, ajustá-los ou mudar a forma dos dados? Se sim, por quê?
+Pesquisei variaveis NA, mas o grupo não tinha nenhuma. Variáveis sem conteúdo não foram pesquisadas porque na importação do arquivo eu atribui por padrão o valor NA para elas (na.strings=c("","NA")), então, automaticamente ao pesquisar por NA, eu já estava pesquisando pelas vazias.
+
+Em alguns gráficos, transformei a variável left em factor para auxiliar o agrupamento dos dados em 0 e 1, e não na média destes dois números.
+
+Observando o sumário das variáveis, os dados são consistentes e sem outliers, portanto não foi necessário manipular o conteúdo.
+
+A variável salary, cujo conteúdo é a faixa do salário (alto, médio, baixo), seria uma ótima candidata a ter a operação log10 aplicada a seu conteúdo caso ele fosse o valor monetário do salário.
+
+# Seção de Gráficos Bivariados
+
+Agora que já conhecemos um poucos as variáveis do conjunto de dados, vamos verificar como elas se relacionam. Nesta seção tentaremos responder as perguntas descritas no ínicio do trabalho. 
+
+### <span style="color:orange">Os colaboradores que saíram recebiam baixo salário? </span>
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Bivariate_Plots}
+desligados <- hr%>%
+             filter(left == 1)
+
+ggplot(aes(x = sales, fill = salary, color = salary), 
+       data = desligados) + 
+  geom_histogram(stat = 'count') +
+  scale_fill_wsj() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_color_wsj() +
+  labs(title = "Faixa salarial por departamento",
+       y     = "Total", 
+       x     = "Departamentos")
+
+```
+
+Entre as pessoas que sairam temos todas as faixas de salário, o volume de pessoas com salário alto é menor e não está presente em todos os departamentos.
+Mas o gráfico já é suficiente para responder a pergunta, as pessoas que saíram recebiam, em sua maioria, um salário baixo ou médio.
+
+Investigando um pouco mais o departamento, vamos ver a proporção de pessoas que sairam de cada uma deles.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Cria um subgrupo de dados com a proporção dos colaboradores que deixaram cada departamento.
+prop_left_sales <- data.frame(round(prop.table(table(hr$sales,hr$left), 1)*100,0))
+
+# Altera o nome das colunas
+colnames(prop_left_sales) <- c("Departamento", "left", "Frequencia")
+
+# Transforma o conteúdo da variável left em coluna, e demonstra o valor de Freq para cada uma delas.
+formattable(cast(prop_left_sales, Departamento ~ left, value="Frequencia"), 
+            list("1" = color_tile("white", "#6699CC")))
+
+```
+Os departamentos de gerencia (management) e pesquisa e desenvolvimento (RandD) tiveram a menor evasão de colaboradores. Os outros departamentos tiveram entre 22 e 29%. Abaixo podemos ver esta distribuição:
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(prop_left_sales, aes(x     = Departamento, 
+                            y     = Frequencia, 
+                            fill  = left, 
+                            label = sprintf("%1.0f%%", Frequencia)))+
+  geom_col() +
+  geom_text() +
+  scale_fill_wsj(name    = "left",
+                 breaks  = c("0", "1"),
+                 labels  = c("Contratado", "Desligado" )) +
+  theme(axis.text.x = element_text(angle=90, hjust=1)) +
+  labs(title = "Percentual de demitidos",
+       y     = "Frequência", 
+       x     = "Departamentos")
+  
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(hr, aes(x    =  sales, 
+               y    = average_montly_hours, 
+               fill = as.factor(left))) + 
+  geom_boxplot(outlier.colour = NA) + 
+  labs(title = "Horas trabalhadas por departamento",
+       x     = "Média mensal de horas trabalhadas",
+       y     = "Departamento") +
+  theme(axis.text.x = element_text(angle=90, hjust=1)) +
+  scale_fill_wsj(name   = "left",
+                 breaks = c("0", "1"),
+                 labels = c("Contratado", "Desligado" ))
+```
+Quando comparados, as pessoas que deixaram a empresa obtiveram uma mediana maior, principalmente no departamento RandD. No departamento de marketing e hr, as pessoas trabalharam entre 150 e 250h mas com uma mediana menor.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Cria dataset com a media de horas trabalhadas por departamento
+media_hora_departamento <- aggregate(hr$average_montly_hours, 
+                                     by  = list(hr$sales, hr$left ) ,
+                                     FUN = mean)
+
+# Renomeia as colunas
+colnames(media_hora_departamento) <- c("Departamento", "left", "Media")
+
+# Transforma o conteúdo da variável left em coluna e preenche com os valores de média
+media_hora_departamento <- cast(media_hora_departamento, Departamento ~ left, 
+                                value = "Media")
+
+# Renomeia as colunas
+colnames(media_hora_departamento) <- c("Departamento", 
+                                       "Contratado", 
+                                       "Desligado")
+
+# Imprime valores
+formattable(media_hora_departamento, 
+            list(Desligado = color_tile("gray", "red")))
+                                    
+```
+
+Com exceção do departamento de recursos humanos (hr), os colaboradores que se desligaram da empresa trabalharam em média mais do que os dos outros departamentos, atingindo uma média mensal superior a 200 horas. Foram realçados em vermelho os casos em que o grupo de desligados trabalhou por mais horas.
+
+Sabemos que os colaboradores que se desligaram trabalharam por mais horas, será que eles conseguiram ficar por muitos anos na empresa?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(hr, aes(x    =  as.factor(time_spend_company), 
+               y    = average_montly_hours, 
+               fill = as.factor(left))) + 
+  geom_boxplot(outlier.colour = "black", outlier.size = 0.5) + 
+  labs(title = "Tempo de empresa x Horas mensais trabalhadas",
+       x     = "Anos de trabalho",
+       y     = "Horas mensais trabalhadas") +
+  scale_fill_wsj(name   = "left",
+                 breaks = c("0", "1"),
+                 labels = c("Contratado", "Desligado" ))
+
+``` 
+Este gráfico trás uma informação interessante, de maneira geral as pessoas não saem da empresa no primeiro ano de trabalho. Os que saem após esse período, são os que trabalharam em média mais tempo por mês.O grupo de maior volume é formado por colaboradores que atuam na empresa a mais de 7 anos.
+
+Outro ponto é que as pessoas que deixam a empresa não chegaram a completar 5 anos de trabalho. Em compração, os que permanecem na empresa chegaram a trabalhar por 10 anos.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(hr, aes(x      =  as.factor(time_spend_company), 
+               y      = satisfaction_level, 
+               colour = as.factor(left))) + 
+  geom_point(alpha = 1/5, 
+             position = position_jitter(h=0)) + 
+  labs(title = "Satisfação x Tempo de trabalho",
+       x     = "Anos de trabalho",
+       y     = "Nível de Satisfação") +
+  scale_color_wsj(name   = "left",
+                  breaks = c("0", "1"),
+                  labels = c("Contratado", "Desligado" ))
+
+``` 
+
+Nós vemos uma insatisfação nos colaboradores que deixam a empresa no 3º ou 4º anos. Aparentemente se você passa por essa fase, o nível de satisfação cresce, ficando acima de 0.75, mas mesmo assim, os colaboradores saem entre o 5º e 6º, e nunca atingem o 7º ano. O ideal para este caso é que tivéssemos um histórico dos níveis de satisfação destas pessoas, ano após ano, assim conseguiríamos projetar a partir de qual ano a insatisfação tende a aumentar ou diminuir.
+
+
+será que há uma variação similar na nota de avaliação recebida por este colaborador durante os anos trabalhados?
+Para descobrir isso, vamos ver a nota de avaliação por ano trabalhado:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(hr, aes(x      =  as.factor(time_spend_company), 
+               y      = last_evaluation, 
+               colour = as.factor(left))) + 
+  geom_point(alpha = 1/5, 
+             position = position_jitter(h=0)) + 
+  labs(title = "Satisfação x Avaliação",
+       x     = "Nota na avaliação",
+       y     = "Nível de Satisfação") +
+  scale_color_wsj(name   = "left",
+                  breaks = c("0", "1"),
+                  labels = c("Contratado", "Desligado" ))
+
+``` 
+
+O 3º ano parece um pouco crítico, não? Vimos no gráfico anterior que muitos dos que saíram demonstraram um nível de satisfação baixo, e neste gráfico percebemos que no 3º a maioria dos desligados receberam uma nota baixa na avaliação. Pode ser motivado por uma avaliação mais rigorosa da empresa após de 3 anos de trabalho ou pode existir uma política específica para este período.
+
+Do 4º ano em diante os desligados receberam em sua maioria uma boa nota na avaliação, em geral acima de 0.8.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(hr, aes(x    = as.factor(time_spend_company), 
+               fill = salary)) + 
+  geom_bar() + 
+  facet_wrap(~ left)+
+  labs(title = "Salário x Tempo de trabalho",
+       x     = "Anos de trabalho",
+       y     = "Total") +
+  scale_fill_wsj()
+
+``` 
+Ter mais tempo de empresa não significa que o salário será melhor. Do sexto para o 10º ano a faixa salarial que prevalece é a média, mas como os que saíram não chegaram a completar 7 anos de trabalho, não é possível verificar se isso se repetiria para eles.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ggplot(aes(x = as.factor(left) , 
+           fill = as.factor(Work_accident)),
+       data = hr) +
+  geom_bar() +
+  labs(title = "Ocorreu acidente de trabalho?",
+       x     = "Deixou a empresa - 0:NÂO, 1:SIM",
+       y     = "Total") +
+  scale_fill_wsj(name = "Acidente?",
+                  breaks = c("0", "1"),
+                  labels = c("Não", "SIM" ))
+``` 
+Mesmo tendo sofrido acidente de trabalho, os colaboradores permanecem na empresa.
+
+Vamos a outra questão: Quem tem mais projetos trabalha mais?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(hr, aes(x = as.factor(number_project), 
+               y = average_montly_hours)) + 
+  geom_bar(stat   = "summary", 
+           fun.y  = "mean", 
+           fill   = "#6699CC",  
+           colour = "#666666") +
+  labs(title = "Projetos x Horas trabalhadas",
+       x     = "Total de projetos",
+       y     = "Média de horas trabalhadas")
+
+``` 
+
+
+Sim. Na média, quem teve mais projetos trabalhou mais horas mensais. Faz bastante sentido que seja assim, mais carga de trabalho, mais tempo necessário para resolve-la.
+
+Agora que já temos uma impresssão sobre o conjunto de dados, vamos, através do cálculo da correlação entre as variáveis, verificar se os valores obtidos nos ajudam a aprofundar a exploração das variáveis.
+
+Correlação entre todas as variáveis do conjunto de dados hr:
+
+```{r echo=FALSE}
+#Imprime gráfico com a correção das variáveis
+#corrplot(cor(subset(hr,select= -c(sales, salary))), method="circle")
+```
+
+
+Correlação entre as variáveis do subconjunto de dados dos colaboradores desligados.
+
+```{r echo=FALSE}
+#Imprime gráfico com a correção das variáveis
+#corrplot(cor(subset(hr, left==1, select= -c(sales, salary))), method="circle")
+```
+
+
+Quando calculada a correlação só para os dados dos colaboradores desligados, a correlação entre as variáveis fica mais forte.
+
+Valores de correlação para o conjunto hr:
+
+```{r echo=FALSE}
+# Valores da correlação entre as variáveis
+#cor(hr[,c(1,2,3,4,5,6,7,8)])
+```
+
+
+
+```{r echo=FALSE}
+# Gera correlação e gráficos entre as variáveis numericas selecionadas
+hr_ggpairs = subset(hr, select = -c(satisfied))
+g <- ggpairs(hr_ggpairs )
+```
+
+```{r  eval=FALSE}
+# Imprime a matriz com todos os gráficos em um arquivo svg. Retire o eval=FALSE para executar esta célula.
+jpeg(filename = "gg.jpg")
+print(g)
+dev.off()
+```
+
+![ggpair](P:/Nanodegree/P04_Explore_Summarize/Explore_Summarize_R/gg.jpg)
+
+Para o contexto, a correlação entre left e satisfaction_level é a mais forte, mesmo não sendo tão forte de maneira geral.
+
+```{r}
+#with(hr, cor.test(left, satisfaction_level, method = 'pearson'))
+```
+
+
+
+# Análise Bivariada
+
+
+### Discuta sobre alguns dos relacionamentos observados nesta parte da investigação. Como os atributos de interesse variaram no conjunto de dados?
+
+A variável left e os anos de trabalho de na empresa variam com o passar do tempo. O 3º ano parece ser o mais crítico, onde são registrados níveis de satisfação baixos, nos anos seguintes há um aumento e não foi registrada nenhuma saída após o colaborador completar 7 anos de casa.
+
+As notas recebidas na avaliação também variam com o passar do tempo. No terceiro ano é registrado o maior volume de notas baixas entre os que deixaram a empresa, e  os outros com mais tempo de trabalho, receberam boas notas em suas avaliações.
+
+Boa parte dos que tiveram acidente de trabalho durante sua jornada permaneceram na empresa, há uma correlação muito fraca entre essas variáveis de -0.1546.
+
+A medida que o número de projetos aumenta, também aumenta o média de horas trabalhadas por mês. E essa correlação é a mais forte do grupo sendo 0.4172.
+
+Trabalhar por anos na empresa não está relacionado a um aumento da faixa de salário. Para aprofundar esta análise seria necessário saber o valor do salário recebido porque pode ter havido um aumento no valor, sem que isso significasse uma troca na faixa salarial (Baixo, Médio e Alto). 
+
+### Você observou algum relacionamento interessante entre os outros atributos (os que não são de interesse)?
+O relacionamento mais forte foi encontrado entre as variáveis número de projetos e média de horas trabalhadas. Não é claro se o total de projetos trabalhados corresponde a um período, por exemplo, são os projetos trabalhados no mês, no ano, desde a contratação? Supondo que seja mensal, faria todo sentido dizer que quem executou mais projetos, consequentemente pode ter tido que trabalhar mais horas no mês. Saber o nível de complexidade do projeto nos auxiliaria na interpretação da relação da quantidade de projetos e o tempo necessário para executá-lo.
+
+
+### Qual foi o relacionamento mais forte encontrado?
+No que interessa a esta análise, que é investigar o porque alguns colaboradores deixaram a empresa, a variável nível de satisfação é a que tem a correlação mais forte com left, indicador de desligamento. Obteve-se o valor de correlação igual a -0.388375, ou seja, 40% dos desligamentos poderiam ser explicados pelo nível de satisfação, mas isso não significa que seja a causa dele.
+
+
+# Seção de Gráficos Multivariados
+
+Distribuição da carga de trabalho por departamento:
+
+```{r echo=FALSE}
+ggplot(aes(x = as.factor(number_project) , 
+           y = average_montly_hours), 
+       data = hr) + 
+  geom_point(alpha = 1/15, 
+             position = position_jitter(h=0)) +
+  facet_wrap( ~ sales) +
+  labs(title = "Número de projetos x horas de trabalho",
+       y     = "Media hora mensal", 
+       x     = "Total de projetos") +
+  scale_color_brewer()
+```
+
+### Porque os bons e satisfeitos estão nos deixando?
+
+Para responder a esta pergunta, o primeiro passo é criar um dataset com os dados dos colaboradores que atendem aos determinados critérios:
+1. Na última avaliação tiveram nota superior a 0.7;
+2. Trabalharam na empresa por mais de 4 anos;
+3. Trabalharam em mais de 5 projetos;
+4. No mês, em média, trabalharam mais de 200 horas
+
+```{r echo=FALSE}
+hr_func_bons <- subset(hr, last_evaluation >= 0.70 & 
+                           time_spend_company >= 4 & 
+                           number_project > 5 & 
+                           average_montly_hours > 200)
+nrow(hr_func_bons)
+```
+Foi criado o data.frame hr_func_bons com 961 registros.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Multivariate_Plots}
+ggplot(hr_func_bons, aes(x    =  salary, 
+                         y    = average_montly_hours, 
+                         fill = as.factor(left))) + 
+  geom_boxplot(outlier.colour = "black", outlier.size = 0.5) + 
+  labs(x = "Faixa salarial",
+       y = "Horas mensais trabalhadas") +
+  scale_fill_wsj(name    = "left",
+                 breaks  = c("0", "1"),
+                 labels  = c("Contratado", "Desligado" ))
+
+```
+Não é nada surpreendente que as pessoas tenham saído da empresa, elas trabalharam mais pela mesma faixa de salário. Claro que para uma análise mais efetiva destas variáveis, seria necessário saber, por exemplo, na faixa de altos salários se os valores são os mesmos, ou se os que trabalhavam mais recebiam uma quantia maior, mesmo sendo caracterizado como a mesma faixa.
+
+Vamos fazer a mesma análise só que observando o total de projetos x horas trabalhadas.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ggplot(hr_func_bons, aes(x    = sales , 
+                         y    = average_montly_hours, 
+                         fill = salary)) + 
+  geom_boxplot(outlier.colour = "black", outlier.size = 0.5) + 
+  theme(axis.text.x = element_text(angle=90, hjust=1)) +
+  facet_wrap(~ left)+
+  labs(x = "Departamento",
+       y = "Horas mensais trabalhadas") +
+  scale_fill_wsj()
+
+```
+
+No comparativo entre os permanecem na empresa e os que saíram é possível ver que mesmo entre os melhores os que saíram trabalhavam mais e exceto pelos departamentos de product_mng e sales, trabalharam por salários baixos e médianos.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(hr, aes(x    =  as.factor(number_project), 
+               y    = average_montly_hours, 
+               fill = as.factor(left))) + 
+  geom_boxplot(outlier.colour = "black", 
+               outlier.size   = 0.5) + 
+  labs(title = "Horas trabalhadas x projetos",
+       x     = "Números de projetos trabalhados",
+       y     = "Horas mensais trabalhadas") +
+  scale_fill_wsj(name   = "left",
+                 breaks = c("0", "1"),
+                 labels = c("Contratado", "Desligado" ))
+
+```
+Bem, esse gráfico nos leva às seguintes observações:
+1. Nesta perspectiva os desligados continuam trabalhando por mais horas que os contratados;
+2. As horas mensais trabalhadas entre os contratados varia quase que de maneira imperceptível independente do número de projetos. As pessoas que trabalharam em 6 projetos, trabalharam entre 150 e 250 horas mensais da mesma forma que os que trabalharam em 2 projetos;
+3. As pessoas que deixaram a empresa trabalharam mais horas por mês que os que ainda estão contratados. Para este grupo, a média de horas trabalhadas aumentou a medida que o número de projetos aumentou;
+4. Os demitidos foram os únicos que trabalharam em 6 projetos ou mais.
+
+### <span style="color:orange">Será que é perceptível a insatisfação do colaborador? </span>
+
+O que eu quero saber é se é a percepção que o colaborador tem de sí, ou seja, seu nível de satisfação se relaciona de alguma forma com a forma como o empregador percebe o colaborador e atribui uma pontuação para isso através da avaliação.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(hr, aes(x      = satisfaction_level , 
+               y      = last_evaluation, 
+               colour = satisfied)) + 
+  geom_point(alpha = 1/3, 
+             position = position_jitter(h=0)) + 
+  geom_smooth(method ='lm', 
+              size   = 1, 
+              fill   = "black" ) +
+  facet_wrap(~ left) +
+  labs(x = "Nível de Satisfação",
+       y = "Nota na avaliação") +
+  scale_color_wsj()
+  
+``` 
+
+Entre os que se desligaram da empresa, tem três grupos bem distintos:
+1. Insatisfeitos, mas reconhecidos como bons pela empresa; Neste grupo nós temos uma associação claramente negativa entre estas duas variáveis.
+2. Insatisfeitos e não reconhecidos, ou seja, obtiveram nota baixa na avaliação;
+3. Satisfeitos e reconhecidos como bons colaboradores.
+
+Receber uma nota ruim na avaliação não é um atributo comum entre os que saíram. 
+
+### <span style="color:orange">Excesso de trabalho, foi um fator negativo? </span>
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = satisfaction_level, 
+           y = average_montly_hours),  
+       data = desligados) +
+  geom_point(aes(color = satisfaction_level)) +
+  geom_smooth(method ='lm') +
+  labs(x = "Nível de Satisfação",
+       y = "Media mensal de horas trabalhadas") 
+```
+  
+Muitíssimo interessante  que entre os desligados a divisão dos insatisfeitos esteja bem clara. Nesta visão, fica evidente, mas sem explicar a causa, o desequilíbrio na hora trabalhada. Respondendo a questão inicial, os insatisfeitos viveram duas situações, a que trabalharam mais que a média e a que trabalharam bem menos que a média mensal para essa variável que são 200 horas mensais. A medida que as horas trabalhadas se aproximaram desta faixa de 200 a 250, a satisfação aumentou.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = satisfaction_level, 
+           y = average_montly_hours),  
+       data = hr_func_bons) +
+  geom_point(aes(color = as.factor(left))) +
+  geom_smooth(method ='lm') +
+  scale_color_wsj(name   = "left",
+                  breaks = c("0", "1"),
+                  labels = c("Contratado", "Desligado" )) +
+  labs(x = "Nível de Satisfação",
+       y = "Media mensal de horas trabalhadas")
+```
+  
+O mesmo gráfico impresso para o conjunto de dados dos "bons colaboradores" evidência como os que se desligaram trabalharam em média por mais horas em comparação com os que ainda trabalham na empresa, para esses os pontos no gráfico são mais dispersos.
+
+Vamos imprimir esse mesmo gráfico para os colaboradores que registraram um rendimento inferior.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Cria dataset com as informações dos colaboradores medianos
+hr_func_medianos <- subset(hr, last_evaluation < 0.70 & 
+                               time_spend_company < 4 & 
+                               number_project < 5 &
+                               average_montly_hours < 200)
+
+ggplot(aes(x = satisfaction_level, 
+           y = average_montly_hours),  
+       data = hr_func_medianos) +
+  geom_point(aes(color = as.factor(left))) +
+  geom_smooth(method ='lm') +
+  scale_color_wsj(name   = "left",
+                  breaks = c("0", "1"),
+                  labels = c("Contratado", "Desligado" )) +
+  labs(x = "Nível de Satisfação",
+       y = "Media mensal de horas trabalhadas")
+```
+  
+Neste grupo nós vemos que os que permaneceram na empresa tiveram uma tendência positiva na satisfação, mantendo-se entre 0.5 e 1. Os desligados estavam mais insatisfeitos, talvez porque não desenvolveram seu potencial máximo, ou não foram envolvidos em muitos projetos. Como estamos falando de comportamento humano, fica difícil inferir sobre a motivação real sem conhecer mais variáveis.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+print("Total de colaboradores medianos desligados:")
+nrow(hr_func_medianos %>%   filter(left==1))
+
+print("Total de bons colaboradores desligados:")
+nrow(hr_func_bons %>%   filter(left==1))
+```
+
+
+```{r echo=FALSE}
+# Calcula o total por faixa de satisfação no grupo dos "bons"
+total_satisfacao <- cast(hr_func_bons, satisfied  ~ left, value = "salary")
+
+# Altera o nome das colunas
+colnames(total_satisfacao) <- c("Satisfacao", "Contratado", "Desligado")
+
+# Imprime os resultados
+formattable(total_satisfacao, 
+            list(Desligado = color_tile("gray", "red")))
+```
+
+Mais uma vez confirmamos que a maior parte dos bons colaboradores desligados era composta por colaboradores insatisfeitos.
+
+Aumentando o contexto vamos comparar o total por faixa tanto para os desligados, quanto para os contratados.
+```{r}
+table(hr$satisfied)
+by(hr$left==1, hr$satisfied, summary)
+
+```
+
+A medida que diminui a faixa de satisfação, nós percebemos um aumento no total de desligados e uma diminuição dos contratados.
+
+Já exploramos e tiramos algumas conclusões sobre o relacionamento das variáveis do conjunto de dados, agora vamos criar um modelo linear tendo como variável focal left.
+```{r}
+m1 <- lm(left ~ satisfaction_level, data = hr)
+m2 <- update(m1, ~ . + time_spend_company)
+m3 <- update(m2, ~ . + average_montly_hours)
+m4 <- update(m3, ~ . + number_project)
+mtable(m1, m2, m3, m4)
+```
+As variáveis satisfaction_level, time_spend_company, average_montly_hours e number_project obtiveram o mesmo r² de 0.2. 20% é um resultado fraco e abaixo da minha expectativa. 
+
+Neste ponto, sei que o nível de satisfação pode estar relacionado com o desligamento do colaborador, por isso vou criar um outro modelo em que esta variável seja o ponto focal para as outras.
+
+```{r}
+m1 <- lm(satisfaction_level ~ average_montly_hours, data = hr)
+m2 <- update(m1, ~ . + time_spend_company)
+m3 <- update(m3, ~ . + number_project)
+m4 <- update(m4, ~ . + promotion_last_5years)
+mtable(m1, m2, m3, m4)
+```
+
+20% do nível de satisfação pode ser explicado pelos números de projetos e promoções nos últimos 5 anos. Este relacionamento não implica causalidade.
+
+# Análise Multivariada
+
+### Discuta sobre os relacionamentos observados nesta parte da investigação. Quais atributos que fortaleceram os demais na observação das variáveis de interesse?
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(satisfied),  data = hr) + 
+  geom_histogram(stat     = "count", 
+                 binwidth = 0.05,  
+                 fill     = "#6699CC",  
+                 colour   = "#666666") +
+  facet_wrap( ~ left) +
+  labs(title = "Satisfeito?  - (0=Contratado, 1=Desligado)", 
+       y     = "Total", 
+       x     = "Faixa de satisfação")
+```
+
+Quando o nível de satisfação de todo o grupo é analisado fica evidente uma distribuição bem diferente entre os que permanecem na empresa e os que saem. Os colaboradores que ficaram tem uma satisfação de regular a satisfeito, com um volume pequeno de colaboradores insatisfeitos. Entre os que saíram o grupo de insatisfeitos é o maior, demonstrando a correlação observada entre elas, mas não é possível afirmar que a insatisfação seja a causa de uma demissão por exemplo.
+
+As horas mensais trabalhadas também desempenharam um papel importante no grupo dos demitidos, sendo comum encontrar as informações polarizadas em muito ou pouco trabalho. 
+
+### Interações surpreendentes e/ou interessantes foram encontradas entre os atributos?
+Foi uma surpresa descobrir que o trabalhar por menos horas que a média mensal foi um fator comum entre os desligados.
+
+### Modelos foram criados usando este conjunto de dados? Discuta sobre os pontos fortes e as limitações do seu modelo.
+Sim, foram criados dois modelos, um para left e outro para satisfaction_level. 
+
+No 1º foi criado um modelo linear de regressão para verificar a relação entre left e as variáveis satisfaction_level, time_spend_company, average_montly_hours, number_project. As variáveis foram selecionadas com base no valor de correlação encontrada entre elas. O resultado recebido foi um pouco decepcionante porque o r² mesmo ajustado só consegue explicar 20% da variável dependente left. Outro valor a ser observado pelo modelo é que há uma alta significância entre as variáveis demonstrado pelo valor de p=0.
+
+No 2º modelo o objetivo do modelo linear de regressão foi relacionar o nível de satisfação com a outras variáveis. Se não estar satisfeito pode estar relacionado, sem ser a causa, com a saída do colaborador, então o que poderia estar relacionado com a baixa satisfação dele? No modelo criado com total de anos trabalhados na empresa e a média mensal de horas trabalhadas tem o menor valor de r²=0, e as variáveis com o número de projetos trabalhados e a existência de promoção nos últimos anos demonstraram uma correlação baixa com a baixa satisfação dele sendo r²=0.2.
+
+------
+
+# Gráficos Finais e Sumário
+
+### Primeiro Gráfico
+
+Os colaboradores que mais trabalham são os mais bem pagos?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_One}
+
+ggplot(hr, aes(x   = number_project, 
+               y   = last_evaluation, 
+               col = salary)) +  	
+geom_point(alpha    = 0.2,
+           position = position_jitter(h=0)) +
+  facet_grid(salary ~ left) +
+  scale_x_continuous(limits = c(1, 7), 
+                     breaks = seq(1,7,1)) +
+  labs(y = "Nota na avaliação", 
+       x = "Número de projetos") +
+  scale_color_wsj()
+```
+
+
+Para minha surpresa, não. Entre os que não fazem mais parte da empresa, os com alto salário trabalharam em menos projetos e obtiveram uma nota baixa na avaliação.
+Os com boa nota na avaliação (acima de 0.7) trabalharam em mais de 4 projetos. Os com nota inferior a 0.6 trabalharam em sua maioria em 2 projetos.
+Os contratados tem uma distribuição mais uniforme da satisfação e a maior parte trabalha de 3 a 5 projetos.
+
+### Segundo Gráfico
+```{r echo=FALSE, Plot_Two}
+
+ggplot(hr, aes(x     = sales, 
+               y     = average_montly_hours, 
+               color = salary)) + 
+  geom_point(alpha    = 0.5,
+             position = position_jitter(h=0))  +
+  facet_wrap(~ left) +
+  theme(axis.text.x = element_text(angle=90, hjust=1)) +
+  scale_color_wsj()+
+  labs(title = "Satisfação por Departamento x Hora trabalhada", 
+       y     = "Média mensal de horas trabalhadas", 
+       x     = "Departamento")
+```
+  
+Mais uma vez conseguimos visualizar a distribuição das horas trabalhadas pelos que se desligaram da empresa. Eles estão polarizados em dois grupos bem definidos, hora trabalham acima da média ou bem abaixo. Nos departamentos Sales e Support, nós vemos, para os que ainda trabalham na empresa, uma incidência maior da faixa média de salário, mas no grupo dos desligados não é possível observar a prevalência desta faixa, a maioria deles recebia um baixo salário.
+
+Como não temos o cargo ocupado por cada um deles, fica difícil traçar uma comparação entre eles. Nesta análise estamos supondo que eles ocupam cargos similares.
+
+### Terceiro Gráfico
+
+Para complementar nossa análise vamos criar um novo modelo, usando o método rpart para construir uma árvore de decisão. Ao fim do processo teremos uma visualização boa dos dados.
+
+Primeiro precisamos separar uma amostra de dados de teste e outra de treino. Estou definindo que ela tenha 80% do tamanho do original. Vou alterar o conteúdo de left, 0=Contratado e 1=Demitido.
+```{r}
+hr$left <- factor(hr$left, labels=c("Contratado", "Desligado"))
+
+# Cria amostra com 80% do tamanho de hr
+sample_size <- floor(0.80 * nrow(hr))
+
+# Set.seed para fins do resultado randomico
+set.seed(123)
+
+# Cria lista de índices
+train_ind <- sample(seq_len(nrow(hr)), size = sample_size)
+
+# Amostra para treino
+train <- hr[train_ind, 1:8]
+
+# Amostra para teste
+test <- hr[-train_ind, 1:8 ]
+
+```
+
+O modelo vai se basear nas variáveis que já foram investigadas até agora e que consideramos importante durante a análise exploratória. O fator a ser predito será left, ou seja, se o colaborador permanecerá ou sairá, e o modelo se baseará no nível de satisfação, nota da última avaliação, média mensal de horas trabalhadas, número de projetos e anos trabalhados na empresa.
+
+```{r}
+# Cria o modelo
+fit <- rpart(left ~ satisfaction_level + last_evaluation + 
+                    average_montly_hours + number_project + 
+                    time_spend_company,
+             data=train,
+             method="class")
+
+# Prediz o resultado
+predicted_hr <- predict(fit, test)
+
+
+auc(as.numeric(test$left) - 1, predicted_hr[, 2])
+```
+Uau! O classificador teve uma excelente pontuação de 0.97.
+
+Agora que sabemos que temos um ótimo modelo, vamos plotar a árvore de decisões.
+
+```{r}
+rpart.plot(fit, extra = 104, 
+                box.palette="GnBu", 
+                branch.lty=3, 
+                shadow.col="gray", 
+                nn=TRUE)
+```
+  
+De fato é um bom modelo, veja como ele espelha e reforça a análise realizada anteriormente, o colaborador com nível de satisfação baixo, muitos projetos, ou satisfeito e trabalhando por muitas horas mensais tem uma probabilidade maior de sair.
+
+------
+
+# Reflexão
+
+É sempre muito estimulante investigar uma base de dados buscando por fatores que possam auxiliar a uma organização a reter seus talentos e manter-se com um time de alto nível. A limitação desta análise é que ela é baseada em comportamento humano, e as poucas variáveis do conjunto de dados não são suficientes para entregar um resultado consistente que possa ser seguido pela organização. Seria muito produtivo para esta análise sabermos informações sobre os cargos, o nível de satisfação por ano de trabalho, o nível de complexidade dos projetos trabalhados e até mesmo o regime de contratação.
+
+Com as informações disponíveis foi possível identificar o quanto a carga de trabalho é um fator determinante para saída do colaborador. Mesmo que ele tenha obtido uma boa nota na avaliação e esteja satisfeito, se ele estiver com uma carga excessiva de projeto e horas de trabalho ele provavelmente sairá. Mas se ele já está um pouco insatisfeito e a empresa atribuir a ele muitas horas ou menos horas do que a média trabalhada por todos, é possível que ele também saia.
+
+Eu gostaria de ter mais informações sobre o valor monetário do salário. Entender se a remuneração pode ser um fator de insatisfação é dificil quando você não sabe o cargo e o salário real. O que pode ser percebido em relação ao reconhecimento do trabalhado é que foram registradas pouquíssimas promoções, inclusive a proporção de acidentes de trabalho é superior do que a de promoções. Entre os demitidos poucas pessoas tinham um alto salário. 
+
+Mesmo não tendo todas as variáveis que considero importante, foi divertido investigar as questões propostas no ínicio deste projeto, eu diria que criar o modelo para a árvore da decisão, e obter um AUC tão alto, foi um dos pontos mais compensadores do processo.
+
+
+
+
+http://stackoverflow.com/questions/38778813/geom-text-works-for-histogram-in-r
+http://stackoverflow.com/questions/30057765/histogram-ggplot-show-count-label-for-each-bin-for-each-category
+http://www.fundacentro.gov.br/arquivos/projetos/estatistica/boletins/boletimfundacentro1vfinal.pdf
+=======
 ---
 title: <span style="color:orange">Recursos Humanos - Quem está deixando a empresa?</span>
 output: html_document
@@ -1015,3 +2081,4 @@ Mesmo não tendo todas as variáveis que considero importante, foi divertido inv
 
 http://stackoverflow.com/questions/38778813/geom-text-works-for-histogram-in-r
 http://stackoverflow.com/questions/30057765/histogram-ggplot-show-count-label-for-each-bin-for-each-category
+>>>>>>> origin/master

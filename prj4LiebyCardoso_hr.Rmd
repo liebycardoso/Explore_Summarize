@@ -58,10 +58,12 @@ library(dplyr)
 
 # Templates adicionais do ggplot2
 library(GGally)
+library(RColorBrewer)
+
 library(plyr)
 library(corrplot)
 library(formattable)
-library(RColorBrewer)
+
 library(memisc)
 library(lattice)
 library(MASS)
@@ -106,7 +108,7 @@ As variáveis sales e salary são do tipo factor, vou criar duas variáveis não
 
 
 ```{r}
-hr$left <- factor(hr$left, levels=c(0,1),labels=c("Contratado", "Demitido"))
+#hr$left <- factor(hr$left, levels=c(0,1),labels=c("Contratado", "Demitido"))
 ```
 
 O nível de satisfação do colaborador será agrupado em três níveis: SIM, NÃO e REGULAR.
@@ -327,7 +329,7 @@ ggplot(aes(satisfaction_level),  data = hr) +
            colour   = "#666666") +
   scale_x_continuous(breaks = seq(0.1,1.0,0.1)) +
   #facet_wrap( ~ left) +
-  labs(title = "Nível de satisfação dos contratados e desligados", 
+  labs(title = "Nível de satisfação dos colaboradores", 
        y     = "Total de colaboradores", 
        x     = "Nível de satisfação")
 
@@ -335,27 +337,12 @@ ggplot(aes(satisfaction_level),  data = hr) +
 
 ```{r}
 sum(hr$satisfaction_level <= 0.3)
-```
-
-Diferente da nota recebida na última avaliação, nós conseguimos observar que existem colaboradores com um nível de satisfação baixo, sendo que 1.941 pessoas registraram um nível de satisfação abaixo de 0.3. Para comparar com a nota dada pela empresa, vamos agrupar essa variável em uma faixa de "satisfação alta" da mesma forma que fizemos com a variável last_evaluation.
-
-  
-```{r}
 sum(hr$satisfaction_level >= 0.7)
 ```
 
-6.503 pessoas atingiram um nível de satisfação alta. 
-
-Para facilitar a comparação, agrupei as informações entre contratados e demitidos. O fato de ter recebido ou não promoção nos últimos anos não variou de maneira significativa entre os dois grupos.
-
-O maior grupo de satisfeitos está entre os que ainda estão contratados, apesar de terem colaboradores com uma satisfação baixa, o maior pico de insatisfeitos está entre os desligados. Observa-se que alguns colaboradores com um nível alto de satisfação deixaram a empresa, e isto será investigado no decorrer deste projeto.
-
-A distribuição do nível de satisfação e da nota da última avaliação é bem similar nos dois grupos. Além dos satisfeitos, colaboradores bem avaliados também deixaram a empresa. 
-
-
-
-
-
+É possível observar que existem colaboradores com um nível de satisfação baixo (<0.3). Do total, 1.941 pessoas registraram um nível de satisfação abaixo de 0.3.
+Na outra ponta da distribuição, temos 6.502 colaboradores com um nível de satisfação igual ou acima de 0.7.
+  
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ggplot(aes(satisfied),  data = hr) + 
   geom_histogram(stat     = "count", 
@@ -368,28 +355,42 @@ ggplot(aes(satisfied),  data = hr) +
                  vjust = -0.5) +
   facet_wrap( ~ left) +
   labs(title = "Total por faixa de satisfação  - (0=Contratado, 1=Desligado)", 
-       y     = "Total", 
+       y     = "Total de colaboradores", 
        x     = "Faixa de satisfação")
 ```
 
-Para os desligados, os insatisfeitos formam o maior grupo, já no grupo dos que ainda são colaboradores o maior grupo é dos satisfeitos, seguido dos que tem uma satisfação regular.
+A faixa de satisfação foi criada para fornecer mais um elemento de comparação entre os contratados e desligados. Para o proprósito desta análise, considere que as faixas:
+Não = Nível de satisfação igual ou inferior a 0.4
+Regular = Nível de satisfação entre 0.4 e 0.7
+Sim = Nível de satisfação superior ou igual a 0.7
+
+```{r}
+# Calcula a proporção de registros for faixa de satisfação agrupado pelo status da contratação
+prop.table(table(subset(hr, select=c(satisfied, left))),2)
+```
+
+Quando nós comparamos as proporções entre os contratados e desligados, percebemos que para os contratados que as faixas de satisfação que prevalecem são as de satisfeitos e satisfação regular, correspondendo as duas à 87% dos contratados. Para os desligados a faixa de insatisfeitos sozinha corresponde a 49% desse conjunto. É bastante significativo pensar que metade dos desligados não estavam satisfeitos.
+
+Entre os contratados observamos que os satisfeitos formam o maior grupo, seguido pelos de satisfação regular, indivíduos insatisfeitos são a minoria.
 
 # Análise Univariada
 
 ### Qual é a estrutura do conjunto de dados?
 A estrutura de dados é composta por 14.999 observações, 10 variáveis importadas com o arquivo original. Foi adicionado a variável satisfied para representar em 3 faixas (SIM, REGULAR, NÃO) a satisfação do colaborador.
 
-A variável left representa os colaboradores que ainda estão na empresa com o valor para colaboradores que permanecem na empresa e 1 para colaboradores desligados.
+A variável left representa o status da contração, com o domínio:
+0 = Pessoas que ainda estão contratadas
+1 = Pessoas que foram desligadas da empresa
 
-A maioria das variáveis são numéricas e duas são categóricas representadas por fatores: sales com 10 níveis e salary com 3.
+No conjunto de dados temos 8 variáveis númericas e 2 categóricas. A variável categórica sales tem 10 níveis e salary tem 3.
 
 ### Quais são os principais atributos de interesse deste conjunto de dados?
 A principal variável de interesse do conjunto é left, que informa se o colaborador está na empresa ou se foi desligado. A variável com o nível de satisfação (satisfaction_level) também será foco da análise, uma vez que, a correlação das outras variáveis com ela pode ajudar a compreender os motivos que levaram as pessoas a deixarem a empresa.
 
 ### Quais outros atributos você acha que podem lhe auxiliar na investigação destes atributos de interesse?
-1. promotion_last_5years: O total de promoções recebidas (promotion_last_5years) pode gerar uma insatisfação no colaborador se ele supor que não foi reconhecido;
+1. promotion_last_5years: O total de promoções recebidas pode gerar uma insatisfação no colaborador se ele supor que não foi reconhecido;
 
-2. time_spend_company: O tempo passado numa empresa pode gerar uma necessidade de sair da empresa, nem sempre por uma causa negativa, mas pela vontade de viver novos desafios;
+2. time_spend_company: O tempo passado numa empresa pode gerar uma necessidade de sair da empresa, nem sempre por uma causa negativa, as vezes motivado pela vontade de viver novos desafios;
 
 3. salary: Essa variável é categorica com os valores baixo, médio e alto. A relação da remuneração com o satisfação e a decisão de saída será avaliado, apesar de várias pesquisas indicarem que o salário nem sempre é um grande influenciador nesta decisão. É possível que variáveis como número de promoções e nota recebida na ultima avaliação pesem mais na sensação de ter o trabalho reconhecido e este é um fator importante;
 
@@ -398,7 +399,7 @@ A principal variável de interesse do conjunto é left, que informa se o colabor
 5. sales: Há algum departamento problemático com baixo nível de satisfação? Acredito que esta questão é importante de ser investigada e pode ser impactante no resultado final.  
 
 ### Você criou novas variáveis a partir dos atributos existentes no conjunto de dados?
-O conjunto de dados estava bem consistente, as alterações realizadas foram para adaptar as informações para análise. 
+O conjunto de dados estava bem consistente, e somente uma alteração foi realizada.
 
 Foi criada a variável satisfied, do tipo factor com 3 níveis: SIM, NAO e REGULAR. O objetivo desse campo é facilitar na visualização das faixas de satisfação dos colaboradores. As faixas definidas para este projeto sem qualquer compromisso com valores padrões de um departamento de recursos humanos.
 

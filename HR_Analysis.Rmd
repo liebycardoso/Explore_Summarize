@@ -14,9 +14,9 @@ by Lieby Cardoso
 This data set was simulated and made available by Ludovic Benistant to the Kaggle site. 
 Source: [Kaggle - Ludovic Benistant - Hr Analytics](https://www.kaggle.com/ludobenistant/hr-analytics)
 
-** Attributes: **
+**Attributes:**
 
-1. Satisfaction_level: Level of collaborator satisfaction
+1. Satisfaction_level: Level of employee satisfaction
 2. Last_evaluation: Rating from last rating
 3. Number_project: Number of projects worked
 4. Average_montly_hours: Monthly average hours worked
@@ -27,7 +27,9 @@ Source: [Kaggle - Ludovic Benistant - Hr Analytics](https://www.kaggle.com/ludob
 9. Sales: Department
 10. Salary: Salary, Low, Medium and High
 
-Objective The objective of this project is to explore the variables of the hr data set that can help in identifying the factors that led some collaborator to leave the company. During the investigation these questions will be answered:
+Objective 
+
+The objective of this project is to explore the variables of the hr data set that can help in identifying the factors that led some employees to leave the company. During the investigation these questions will be answered:
 
 Did the employees who left receive a low salary?
 Is the employee's dissatisfaction perceptible?
@@ -66,7 +68,7 @@ names(hr)
 
 ```
 
-** Data overview **
+**Data overview**
 
 Summary:
 ```{r echo=FALSE}
@@ -79,13 +81,13 @@ We will check the structure of the data, and whether it will be necessary to man
 str(hr)
 ```
 
-The data set consists of 14,999 observations and 10 variables. It does not have any variable that is a unique identification of the collaborator, so let's consider that each record corresponds to one person, without duplication.
+The data set consists of 14,999 observations and 10 variables. It does not have any variable that is a unique identification of the employee, so let's consider that each record corresponds to one person, without duplication.
 
 ```{r}
 hr$salary<-ordered(hr$salary,levels=c("low","medium","high"))
 ```
 
-The level of collaborator satisfaction will be grouped into three levels: YES, NO and REGULAR.
+The level of employee satisfaction will be grouped into three levels: YES, NO and REGULAR.
 
 ```{r}
 # Create new field satisfied
@@ -137,7 +139,7 @@ People who leave ratio:
 prop.table(table(hr$left))
 ```
 
-Left, a variable focus of the analysis, is divided between contractors, that is, who are still in the company and who leave. Of the total 14,999 employees, 3,571 were dismissed and 11,428 were active. A proportion of  collaborators who have left a company for 24% of the data set. 
+Left, a variable focus of the analysis, is divided between contractors, that is, who are still in the company and who leave. Of the total 14,999 employees, 3,571 were dismissed and 11,428 were active. A proportion of employees who have left a company for 24% of the data set. 
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
@@ -154,13 +156,13 @@ ggplot(aes(as.factor(time_spend_company)), data = hr) +
        x     = "Number of years worked")
 ```
   
-This is a positively skewed distribution, with a reduction in the number of  collaborators per year as it approaches the right tail. Let's check this trend and confirm that the median value is less than the mean value through the statistical summary of the variable time_spend_company:
+This is a positively skewed distribution, with a reduction in the number of  employees per year as it approaches the right tail. Let's check this trend and confirm that the median value is less than the mean value through the statistical summary of the variable time_spend_company:
 
 ```{r}
 summary(hr$time_spend_company)
 ```
 
-The median is 3 years, corresponding to the year that in fact has the largest number of collaborators, being 6,443 people. The largest volume (75%) of employees in the dataset worked between 2 and 4 years, being the limit of the 3rd quartile in the 4th year.
+The median is 3 years, corresponding to the year that in fact has the largest number of employees, being 6,443 people. The largest volume (75%) of employees in the dataset worked between 2 and 4 years, being the limit of the 3rd quartile in the 4th year.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ggplot(aes(as.factor(Work_accident)),  data = hr) + 
@@ -225,8 +227,7 @@ formattable(Funcionarios_departamento,
             list(x = color_tile("white", "#6699CC")))
 ```
  
-
-O departamento Sales é o com a maior quantidade de colaboradores, seguido pelo departamento Technical e Support, somando 9.089 colaboradores. O Management é o menor deles com 630 colaboradores. 
+The Sales department is the one with the largest number of employees, followed by the Technical and Support department, totaling 9,089 employees. Management is the smallest of them with 630 employees.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
  ggplot(aes(as.factor(promotion_last_5years)),  data = hr) + 
@@ -343,7 +344,7 @@ Among the hired we observe that the satisfied ones form the largest group, follo
 
 ### What is the structure of the dataset? 
 
-The data structure consists of 14,999 observations, 10 variables imported with the original file. The satisfied variable was added to represent in 3 bands (YES, REGULAR, NO) the satisfaction of the collaborator.
+The data structure consists of 14,999 observations, 10 variables imported with the original file. The satisfied variable was added to represent in 3 bands (YES, REGULAR, NO) the satisfaction of the employee.
 
  The variable left represents the contraction status, with the domain: 0 = People who are still hired 1 = People who have been disconnected from the company.
 
@@ -355,7 +356,7 @@ The main variable of interest in the set is left, which tells you if the employe
 
 What other attributes do you think can help you in researching these attributes of interest?
 
-1. Promotion_last_5years: The total of promotions received can generate a dissatisfaction in the collaborator if he supposes that it was not recognized;
+1. Promotion_last_5years: The total of promotions received can generate a dissatisfaction in the employee if he supposes that it was not recognized;
 
 2. Time_spend_company: The time spent in a company can generate a need to leave the company, not always for a negative cause, sometimes motivated by the will to live new challenges;
 
@@ -1095,10 +1096,9 @@ To complete the exploration of the data will be displayed 3 graphs that summariz
 
 ### First Chart
 
-Para começar selecionei as variáveis average_montly_hours e satisfaction_level. A variável satisfaction_level, dentre todas do conjunto de dados, foi a que teve o valor de correlação mais significativo com left, sendo -0.38. Em outros gráficos, average_montly_hours trouxe informações relevantes, demonstrando sempre a existência de uma média mensal superior de horas trabalhadas para os Lefts em comparação com os contratados.
+For starters I selected the variables average_montly_hours and satisfaction_level. The satisfaction_level variable, among all of the data set, was the one that had the most significant correlation value with left, being -0.38. In other charts, average_montly_hours brought relevant information, always demonstrating the existence of a higher monthly average of hours worked for Lefts compared to those hired.
 
-Temos uma média de 198 horas mensais trabalhadas para os contratados e 224 horas para os Lefts. As máximas registradas foram 287 e 310 horas respectivamente.
-
+We have an average of 198 hours worked for contractors monthly and 224 hours for Lefts. The maximums recorded were 287 and 310 hours respectively.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ggplot(hr, aes(x      = average_montly_hours, 
